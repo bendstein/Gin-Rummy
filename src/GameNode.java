@@ -1,7 +1,7 @@
 import java.util.ArrayList;
 import java.util.Random;
 
-//Infoset node
+@SuppressWarnings("ALL")
 public class GameNode {
 	public static boolean DEBUG = false;
 	public static Random prng = new Random();
@@ -104,11 +104,31 @@ public class GameNode {
 		// Otherwise, set probability[i], the probability of choosing an action i,
 		// to at least EPSILON/actions.length. The remaining 1-EPSILON in probability should be 
 		// allocated proportional to the strategy (i.e. values in action[i].p).
-		
+
+		for(int i = 0; i < probability.length; i++) {
+			if(useAveStrategy || player != player_i)
+				probability[i] = actions[i].p;
+			else {
+				probability[i] = EPSILON/actions.length + (1d - EPSILON) * actions[i].p;
+				actions[i].p = 1 - probability[i];
+			}
+		}
+
 		int actionIndex = 0;
 		// TODO: Set actionIndex to the current action, choosing action i with a probability proportional
 		// probability[i]
 
+		double sum = 0d;
+		double prob = Math.random();
+
+		for(int i = 0; i < probability.length; i++) {
+			sum += probability[i];
+
+			if(prob < sum) {
+				actionIndex = i;
+				break;
+			}
+		}
 		
 		UtilityProbability uP;
 	
@@ -131,7 +151,7 @@ public class GameNode {
 		
 		// TODO: Set uP equal to the value returned by the call to playFrom from the nextState game state
 		// Note that the call will vary based on whether player == player_i
-
+		uP = playFrom(nextState, players, player_i, player == player_i ? pi * probability[actionIndex] : pi, useAveStrategy);
 		
 		// If we don't draw first face up card, we jumped directly to other player's turn, so we
 		// need to negate utility
@@ -150,9 +170,9 @@ public class GameNode {
 
 		
 		// TODO: Update uP.pTail coming out of the recusion, so that, in the calling function,
-		// it will be equal to the probability we played from the node to the sampled terminal node 
+		// it will be equal to the probability we played from the node to the sampled terminal node
+		if(player == player_i) uP.pTail *= actions[actionIndex].p;
 
-		
 		return uP;
 	}
 
@@ -188,13 +208,32 @@ public class GameNode {
 		// Otherwise, set probability[i], the probability of choosing an action i,
 		// to at least EPSILON/actions.length. The remaining 1-EPSILON in probability should be 
 		// allocated proportional to the strategy (i.e. values in action[i].p).
+		for(int i = 0; i < probability.length; i++) {
+			if(useAveStrategy || player != player_i)
+				probability[i] = discards[i].p;
+			else {
+				probability[i] = EPSILON/discards.length + (1d - EPSILON) * discards[i].p;
+				discards[i].p = 1 - probability[i];
+			}
+		}
 
 		
 		int actionIndex = 0;
 		// TODO: Set actionIndex to the current action, choosing action i with a probability proportional
 		// probability[i]
 
-		
+		double sum = 0d;
+		double prob = Math.random();
+
+		for(int i = 0; i < probability.length; i++) {
+			sum += probability[i];
+
+			if(prob < sum) {
+				actionIndex = i;
+				break;
+			}
+		}
+
 		ActionDiscard discard = discards[actionIndex];
 		if (DEBUG) System.out.println("Discarding " + discard.getCardAsObject().toString());	
 		GameState nextState = new GameState(state);
@@ -204,6 +243,8 @@ public class GameNode {
 
 		// TODO: Set uP equal to the value returned by the call to playFrom from the nextState game state
 		// Note that the call will vary based on whether player == player_i
+
+		uP = playFrom(nextState, players, player_i, player == player_i ? pi * probability[actionIndex] : pi, useAveStrategy);
 		
 		if (useAveStrategy == false) {
 			if (player == player_i) {
@@ -217,6 +258,7 @@ public class GameNode {
 		// TODO: Update uP.pTail coming out of the recusion, so that, in the calling function,
 		// it will be equal to the probability we played from the node to the sampled terminal node 
 
+		if(player == player_i) uP.pTail *= discards[actionIndex].p;
 		
 		return uP;
 	}
@@ -270,7 +312,7 @@ public class GameNode {
 			if (DEBUG) System.out.println("Knock - game over");
 			double util = gameOver(state);
 			// TODO: The game is over.  Set uP to appropriate values for this terminal node.
-
+			uP = new UtilityProbability(util/pi, 1d);
 		
 		}
 		else {
@@ -287,7 +329,7 @@ public class GameNode {
 			// TODO: Set uP equal to the value returned by the call to playFrom from the nextState game state
 			// Note that the call will vary based on whether player == player_i
 
-			
+			uP = playFrom(nextState, players, player_i, player == player_i ? pi * probability[actionIndex] : pi, useAveStrategy);
 			
 			// Other player goes next, so we need to negate utility
 			uP.scaledUtility = -uP.scaledUtility;
@@ -305,7 +347,8 @@ public class GameNode {
 		// TODO: Update uP.pTail coming out of the recusion, so that, in the calling function,
 		// it will be equal to the probability we played from the node to the sampled terminal node 
 
-		
+		if(player == player_i) uP.pTail *= actions[actionIndex].p;
+
 		return uP;
 	}
 	

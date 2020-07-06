@@ -121,6 +121,10 @@ public abstract class Strategy {
 					// actions[a].infosetAndAction. Add an appropriate value to it, based on our
 					// lecture notes.  Note it will be different depending on whether a == sampledAction
 
+					double regret = a == sampledAction ? w * (1d - actions[sampledAction].p) * utilProb.pTail :
+							-w * actions[sampledAction].p * utilProb.pTail;
+					sumRegret.put(actions[a].infosetAndAction, sumRegret.getOrDefault(actions[a].infosetAndAction, 0d) + regret);
+
 				}
 			}
 		}
@@ -141,6 +145,8 @@ public abstract class Strategy {
 				if (action.infosetAndAction != null) {
 					// TODO: For the key action.infosetAndAction, increment the value stored in sumStrategy by action.p scaled
 					// appropriately (as we discussed in the lecture)
+
+					sumStrategy.put(action.infosetAndAction, sumStrategy.getOrDefault(action.infosetAndAction, 0d) + action.p/pi);
 				}
 			}
 		}
@@ -214,7 +220,8 @@ public abstract class Strategy {
 		
 		double sumP = 0.0;
 		for (Action action: actions) {
-			if (action.p < 0) throw new RuntimeException("Probabilities should not be negative");
+			if (action.p < 0)
+				throw new RuntimeException("Probabilities should not be negative");
 			sumP += action.p;
 		}
 		
