@@ -1,8 +1,9 @@
+
 /**
  * Implements a fixed discard strategy: 
- * 1)  We start by looking for ï¿½unmatchableï¿½ cards.  A card is unmatchable if it is not currently in a meld 
+ * 1)  We start by looking for “unmatchable” cards.  A card is unmatchable if it is not currently in a meld 
  *       AND it cannot be put in a meld even after drawing one more card AND it is worth at least seven points.
- * 2)  Among these unmatchable cards, we check for cards that are ï¿½deadï¿½.  A card is dead if it cannot be put 
+ * 2)  Among these unmatchable cards, we check for cards that are “dead”.  A card is dead if it cannot be put 
  *       into a meld by the opponent.
  * 3)  If there are unmatchable, dead cards, we pick the highest value of unmatchable, dead card to discard.
  * 4)  Else if there are unmatchable cards, we discard the highest value unmatchable card

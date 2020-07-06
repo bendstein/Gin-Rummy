@@ -2,7 +2,7 @@ import java.util.ArrayList;
 import java.util.Random;
 
 /**
- * A node in the Game Tree
+ * The state of a game at a point in time
  * 
  * @author jjb24
  */
@@ -236,7 +236,7 @@ public class GameState {
 	public String toString() {
 		StringBuffer sb = new StringBuffer("\nGAME STATE\n");
 		for (int i = 0; i < 2; i++) {
-			sb.append("week_5.Player " + i + "\n");
+			sb.append("Player " + i + "\n");
 			sb.append("Hand:");
 			ArrayList<Card> cards = GinRummyUtil.bitstringToCards(players[i].cards);
 			for (Card card : cards) {

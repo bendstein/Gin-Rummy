@@ -1,3 +1,4 @@
+
 public class StrategyDraw extends Strategy {
 	public static final int MIN_DROP_TO_TAKE_FACE_UP = 6;
 

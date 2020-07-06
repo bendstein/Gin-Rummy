@@ -54,7 +54,7 @@ public class PshUtil {
 	/**
 	 * Determine if the face up card would become part of a meld
 	 *  
-	 * @param state the current state
+	 * @param GameState the current state
 	 * 
 	 * @return true if the face up card would be a part of a meld
 	 */
@@ -76,7 +76,7 @@ public class PshUtil {
 	/**
 	 * Determine best deadwood if take face up card
 	 *  
-	 * @param state the current state
+	 * @param GameState the current state
 	 * 
 	 * @return the minimum deadwood possible after drawing this card and discarding one
 	 */
@@ -128,7 +128,7 @@ public class PshUtil {
 					if (deadCard == 0 || GinRummyUtil.getDeadwoodPoints(c) > points) {
 						deadCard = card;
 						points = GinRummyUtil.getDeadwoodPoints(c);
-						if (GameNodeBlum.DEBUG) System.out.println("Found dead card " + c);
+						if (GameNode.DEBUG) System.out.println("Found dead card " + c);
 					}
 				}
 			}
@@ -140,7 +140,7 @@ public class PshUtil {
 	/** 
 	 * Return cards that cannot be a part of any meld even after drawing another card,
 	 * with the constraint that cards must have at least minPointValue deadwood points
-	 * AND card is not the Face Up week_5.Card
+	 * AND card is not the Face Up Card
 	 * 
 	 * @param state the current game state
 	 * @param minPointValue the minimum point value that a card must have to be considered
@@ -161,7 +161,7 @@ public class PshUtil {
 			}
 		}	
 		if (unmatchableCards == 0L) {
-			if (GameNodeBlum.DEBUG) System.out.println("No cards with sufficient points selected for matchability.");
+			if (GameNode.DEBUG) System.out.println("No cards with sufficient points selected for matchability.");
 			return 0L;
 		}
 		
@@ -336,10 +336,10 @@ public class PshUtil {
 	}
 
 	/**
-	 * Convert card bitstring to week_5.Card object
+	 * Convert card bitstring to Card object
 	 * 
 	 * @param card bitstring for card
-	 * @return corresponding week_5.Card object
+	 * @return corresponding Card object
 	 */
 	public static Card bitStringToCard(long card) {
 		if (!bitStringToCards.containsKey(card)) throw new IllegalArgumentException("Expected a card as a bitstring, received Ox" + Long.toString(card,16) +" instead.");
@@ -375,7 +375,7 @@ public class PshUtil {
      * @return the number of set bits (i.e. bits set to 1) in the bitstring
      */
 	public static int getSetBits(long bitString) {
-		// Using Kernighanï¿½s Algorithm for counting set bits 
+		// Using Kernighan’s Algorithm for counting set bits 
 		int count = 0;
 		while (bitString != 0) {
 			bitString = bitString & (bitString - 1); // Unset the least significant bit with a 1

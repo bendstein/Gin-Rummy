@@ -1,34 +1,47 @@
-import java.io.BufferedReader;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
 import java.util.*;
 import java.util.stream.Collectors;
 
-/*
- * Notes:
- *      -It gets harder to find things to improve each week. It's possible that maybe having too many things makes it
- *          worse, and that in order to make major additions I would also need to make major removals, but I'm hesitant
- *          to do that.
- *      -I made a few small tweaks to my strategy parameters, and I think that it might've had a positive impact.
- *      -Before, I preferred discarding cards if the opponent had discarded cards which could be melded with them. Now, I
- *          also prefer discarding them if the opponent forwent drawing similar cards that were face-up. I feel like this
- *          should've had an impact, but it doesn't seem to.
- */
-
-/*
+/**
  * Class containing the player
  */
 public class BJG5493GinRummyPlayerV2 implements GinRummyPlayer {
 
-    private int playerNum; //The number assigned to our player
-    private Random random = new Random(); //prng
-    private boolean opponentKnocked = false; //Becomes true if opponent knocks
-    private int drawn; //The id of the card which was drawn
-    private Card drawnCard;
-    private State state; //State of the game
-    private GeneralStrategy generalStrategy; //Parameters for different decision points
-    private ArrayList<ArrayList<Card>> oppMelds; //If opponent knocks, this is what their meld set is
-    private static boolean encoded = true; //If false, we will also use Card objects. For debugging.
+    //<editor-fold desc="Instance Variables">
+    /**
+     * The number assigned to our player
+     */
+    private int playerNum;
+
+    /**
+     * prng
+     */
+    private Random random = new Random();
+
+    /**
+     * Becomes true if opponent has knocked.
+     */
+    private boolean opponentKnocked = false;
+
+    /**
+     * The id of the card which was drawn
+     */
+    private int drawn;
+
+    /**
+     * The current state of the game
+     */
+    private State state;
+
+    /**
+     * Parameters used for different decision points
+     */
+    private GeneralStrategy generalStrategy;
+
+    /**
+     * If the opponent knocks, this is what their final meld set is
+     */
+    private ArrayList<ArrayList<Card>> oppMelds;
+    //</editor-fold>
 
     public BJG5493GinRummyPlayerV2() {
 
@@ -51,7 +64,7 @@ public class BJG5493GinRummyPlayerV2 implements GinRummyPlayer {
          */
         generalStrategy = new GeneralStrategy(MyGinRummyUtil.decoded("34466"), strat);
 
-        //With the refined abstraction including deadwood and index into deck
+        //With the "refined" abstraction including deadwood and index into deck
         /*
         generalStrategy = new GeneralStrategy(MyGinRummyUtil.decoded("34564"),
                 new HashMap<String, Double>() {{
@@ -574,7 +587,7 @@ public class BJG5493GinRummyPlayerV2 implements GinRummyPlayer {
     public void startGame(int playerNum, int startingPlayerNum, Card[] cards) {
         this.playerNum = playerNum;
 
-        state = new State(new ArrayList<>(Arrays.asList(cards)), encoded);
+        state = new State(new ArrayList<>(Arrays.asList(cards)));
 
         oppMelds = null;
         opponentKnocked = false;
@@ -586,33 +599,22 @@ public class BJG5493GinRummyPlayerV2 implements GinRummyPlayer {
         int card_id = card.getId();
         // If first turn, record the face-up card. All other unseen face-up cards should be recorded in reportDiscard()
         if(state.getTurn() == 0) {
-            if(encoded) {
-                state.addToSeen(card_id);
-            }
-            else {
-                state.addToSeenCards(card);
-            }
+            state.addToSeen(card_id);
             state.decreaseNumRemaining();
         }
 
         //Card is our face-up
-        if(encoded) {
-            state.setFaceUp(card_id);
-        }
-        else {
-            state.setFaceUpCard(card);
-        }
+        state.setFaceUp(card_id);
 
-        if(encoded) {
-            return willDrawFaceUpCard(state.getHand(), state.getFaceUp());
-        }
+        return willDrawFaceUpCard(state.getHand(), state.getFaceUp());
 
-        else {
-            return willDrawFaceUpCard(state.getHandCards(), state.getFaceUpCard());
-        }
     }
 
-    //See if we would draw card if we had the given hand
+    /**
+     * @param hand A hand of cards
+     * @param card_id The id of the face-up card
+     * @return true if we would pick up card_id with the given hand
+     */
     public boolean willDrawFaceUpCard(long hand, int card_id) {
 
         /*
@@ -650,52 +652,6 @@ public class BJG5493GinRummyPlayerV2 implements GinRummyPlayer {
 
     }
 
-    //See if we would draw card if we had the given hand
-    public boolean willDrawFaceUpCard(ArrayList<Card> hand, Card card) {
-
-        /*
-         * First: If picking up the face-up card will lower our deadwood by an amount that is at
-         * least strategy.getMinPickupDifference(), and it lowers it more than we expect the face-down card to
-         * draw it.
-         */
-
-        //MyGinRummyUtil.printHandWithMelds(hand);
-        //System.out.println();
-
-        ArrayList<Card> newCards = new ArrayList<>(hand);
-        newCards.add(card);
-
-        //MyGinRummyUtil.printHandWithMelds(newCards);
-        //System.out.println();
-
-        int cost = MyGinRummyUtil.makesNewMeld(hand, card);
-        if(cost >= generalStrategy.getMinPickupDifference() &&
-                cost > MyGinRummyUtil.expectedDeadwoodForNextDraw(state)) return true;
-
-        /*
-         * If the card can't be melded within 2 draws, don't draw it.
-         */
-
-        if(MyGinRummyUtil.getDeadwoodPoints(card) > generalStrategy.getMaxIsolatedSingleDeadwood()
-                && MyGinRummyUtil.getIsolatedSingles(newCards, null, state).contains(card)) return false;
-        else if(MyGinRummyUtil.getDeadwoodPoints(card) > generalStrategy.getMaxSingleDeadwood()
-                && MyGinRummyUtil.getSingles(newCards, null, state).contains(card)) return false;
-
-        /*
-         * Next: If the card doesn't increase deadwood too much, and the opponent could meld it, draw the face-up.
-         */
-        if(cost >= generalStrategy.getMaxSingleDeadwood() && MyGinRummyUtil.canOpponentMeld(card, state)) return true;
-
-
-        /*
-         * Then, look at all within 2 of the highest discards. If the list doesn't contain the face-up, pick it up. Otherwise, don't.
-         */
-        ArrayList<Card> preferred = MyGinRummyUtil.findHighestDiscards(newCards, null, null, 2);
-
-        return !preferred.contains(card);
-
-    }
-
     @Override
     public void reportDraw(int playerNum, Card drawnCard) {
 
@@ -709,53 +665,33 @@ public class BJG5493GinRummyPlayerV2 implements GinRummyPlayer {
         // Ignore other player draws.  Add to cards if playerNum is this player.
         if (playerNum == this.playerNum) {
 
-            if(encoded) {
-                //If we drew face-down, decrease numRemaining.
-                if(drawnCard.getId() != state.getFaceUp()) {
-                    state.increaseTopCard();
-                    state.decreaseNumRemaining();
-                }
-                state.addToHand(drawnCard.getId());
-                this.drawn = drawnCard.getId();
+            //If we drew face-down, decrease numRemaining.
+            if(drawnCard.getId() != state.getFaceUp()) {
+                state.increaseTopCard();
+                state.decreaseNumRemaining();
             }
-            else {
-                //If we drew face-down, decrease numRemaining.
-                if(!drawnCard.equals(state.getFaceUpCard())) {
-                    state.increaseTopCard();
-                    state.decreaseNumRemaining();
-                }
-                state.addToHandCards(drawnCard);
-                this.drawnCard = drawnCard;
-            }
+            state.addToHand(drawnCard.getId());
+            this.drawn = drawnCard.getId();
+
         }
         //If the other player drew, and drawnCard isn't null, other player drew face-up.
         else {
-            if(drawnCard != null) {
-                if(encoded) {
-                    state.addToOppHand(drawnCard.getId());
-                }
-                else {
-                    state.addToOppHandCards(drawnCard);
-                }
-            }
+            if(drawnCard != null)
+                state.addToOppHand(drawnCard.getId());
         }
     }
 
-    @SuppressWarnings("unchecked")
     @Override
     public Card getDiscard() {
-        if(encoded) {
-            long potentialDiscards = findDiscard(state.getHand(), state.getFaceUp());
-            return MyGinRummyUtil.bitstringToCards(potentialDiscards).get(random.nextInt(MyGinRummyUtil.size(potentialDiscards)));
-        }
-
-        else {
-            ArrayList<Card> potentialDiscards = findDiscard(state.getHandCards(), state.getFaceUpCard());
-            return potentialDiscards.get(random.nextInt(potentialDiscards.size()));
-        }
+        long potentialDiscards = findDiscard(state.getHand(), state.getFaceUp());
+        return MyGinRummyUtil.bitstringToCards(potentialDiscards).get(random.nextInt(MyGinRummyUtil.size(potentialDiscards)));
     }
 
-    //Find the card to discard in a hand, given the card that you can't discard.
+    /**
+     * @param hand A hand of cards
+     * @param face_up The id of the face-up card
+     * @return A group of all cards which we would most prefer to discard
+     */
     public long findDiscard(long hand, int face_up) {
 
         /*
@@ -821,6 +757,7 @@ public class BJG5493GinRummyPlayerV2 implements GinRummyPlayer {
                  * If the opp has discarded cards that could be melded with this card, it is less likely they would find it useful. Prefer to discard any of these cards.
                  */
                 else if(MyGinRummyUtil.containsRank(state.getOppDiscard(), c.getId()) || MyGinRummyUtil.containsSuit(state.getOppDiscard(), c.getId(), 2)) preferred = MyGinRummyUtil.add(preferred, c.getId()); //If similar cards have been tossed, prefer
+                else if(MyGinRummyUtil.containsRank(state.getOppForwent(), c.getId()) || MyGinRummyUtil.containsSuit(state.getOppForwent(), c.getId(), 1)) preferred = MyGinRummyUtil.add(preferred, c.getId());;
             }
 
             if(toRemove != candidateCards) candidateCards = MyGinRummyUtil.removeAll(candidateCards, toRemove); //Remove useful cards to the opponent, unless all cards would be useful
@@ -847,123 +784,18 @@ public class BJG5493GinRummyPlayerV2 implements GinRummyPlayer {
 
     }
 
-    //Find the card to discard in a hand, given the card that you can't discard.
-    public ArrayList<Card> findDiscard(ArrayList<Card> hand, Card face_up) {
-
-        /*
-         * First, get all cards who's removal would lower our deadwood the most
-         */
-
-        //MyGinRummyUtil.printHandWithMelds(hand);
-
-        ArrayList<Card> candidateCards = MyGinRummyUtil.findHighestDiscards(hand, drawnCard, state.getFaceUpCard(), 0);
-
-        /*
-         * Prefer cards who cannot be melded even after 2 draws, not considering other potential discards.
-         * If there are none (or no cards can), prefer those who can't be melded after 1 draw.
-         */
-        ArrayList<Card> temp = new ArrayList<>(candidateCards);
-        ArrayList<Card> toRemove = new ArrayList<>();
-
-        for(Card c : candidateCards) {
-            temp.remove(c);
-            if(!(MyGinRummyUtil.getIsolatedSingles(hand, temp, state)).contains(c))
-                toRemove.add(c);
-            temp.add(c);
-        }
-
-        if(toRemove.size() != candidateCards.size()) candidateCards.removeAll(toRemove);
-
-        else {
-            toRemove = new ArrayList<>();
-
-            for(Card c : candidateCards) {
-                temp.remove(c);
-                if(!(MyGinRummyUtil.getSingles(hand, temp, state)).contains(c))
-                    toRemove.add(c);
-                temp.add(c);
-            }
-
-            if(toRemove.size() != candidateCards.size()) candidateCards.removeAll(toRemove);
-        }
-
-
-        /*
-         * Then, filter out cards which would be helpful to the opponent
-         */
-        if(candidateCards.size() > 1) {
-            toRemove = new ArrayList<>(); //Don't remove until after loop
-            ArrayList<Card> preferred = new ArrayList<>(); //Cards we would prefer to remove
-
-            for(Card c : candidateCards) {
-
-                /*
-                 * If a card could be used in an opp meld, or at least bring them closer, avoid discarding it
-                 */
-                if(MyGinRummyUtil.canOpponentMeld(c, state)) toRemove.add(c);
-                else if(MyGinRummyUtil.containsRank(state.getOppHand(), c.getId()) || MyGinRummyUtil.containsSuit(state.getOppHand(), c.getId(), 2)) toRemove.add(c);
-
-                /*
-                 * If the opp has discarded cards that could be melded with this card, it is less likely they would find it useful. Same thing applies if they chose to ignore
-                 * a similar face-up card. Prefer to discard any of these cards.
-                 */
-                else if(MyGinRummyUtil.containsRank(state.getOppDiscard(), c.getId()) || MyGinRummyUtil.containsSuit(state.getOppDiscard(), c.getId(), 2)) preferred.add(c);
-                else if(MyGinRummyUtil.containsRank(state.getOppForwent(), c.getId()) || MyGinRummyUtil.containsSuit(state.getOppForwent(), c.getId(), 1)) preferred.add(c);
-            }
-
-            if(toRemove.size() != candidateCards.size()) candidateCards.removeAll(toRemove); //Remove useful cards to the opponent, unless all cards would be useful
-            if(!preferred.isEmpty() && preferred.size() != candidateCards.size()) candidateCards.removeIf(c -> (!preferred.contains(c))); //Only consider cards which we would prefer to discard
-
-        }
-
-        /*
-         * If there are more than 2 cards left, if any are dupled, avoid throwing them away
-         */
-        if(candidateCards.size() > 2) {
-            Set<Set<Card>> duples = new HashSet<>();
-            toRemove = new ArrayList<>();
-
-            for(Card c : candidateCards)
-                duples.addAll(MyGinRummyUtil.getDuples(candidateCards, c));
-
-            for(Set<Card> duple : duples) {
-                for(Card c : duple) {
-                    if(!toRemove.contains(c)) toRemove.add(c);
-                }
-            }
-
-            if(toRemove.size() != candidateCards.size()) candidateCards.removeAll(toRemove);
-        }
-
-        return candidateCards;
-
-    }
-
     @Override
     public void reportDiscard(int playerNum, Card discardedCard) {
         // Ignore other player discards.  Remove from cards if playerNum is this player.
         if (playerNum == this.playerNum) {
-            if(encoded) {
-                state.removeFromHand(discardedCard.getId());
-            }
-            else  {
-                state.removeFromHandCards(discardedCard);
-            }
-
+            state.removeFromHand(discardedCard.getId());
             state.nextTurn();
         }
 
         //If we knew the discarded card was in the opponent's hand, remove. If we didn't, add it to seen.
         else {
-            if(encoded) {
-                state.addToSeen(discardedCard.getId());
-                state.removeFromOppHand(discardedCard.getId());
-            }
-            else {
-                state.addToSeenCards(discardedCard);
-                state.removeFromOppHandCards(discardedCard);
-            }
-
+            state.addToSeen(discardedCard.getId());
+            state.removeFromOppHand(discardedCard.getId());
         }
     }
 
@@ -973,19 +805,10 @@ public class BJG5493GinRummyPlayerV2 implements GinRummyPlayer {
         ArrayList<ArrayList<ArrayList<Card>>> bestMeldSets;
         int deadwood;
 
-        if(encoded) {
-            bestMeldSets = MyGinRummyUtil.cardsToBestMeldSets(MyGinRummyUtil.bitstringToCards(state.getHand()));
-            deadwood = bestMeldSets.isEmpty() ?
-                    MyGinRummyUtil.getDeadwoodPoints(MyGinRummyUtil.bitstringToCards(state.getHand())) :
-                    MyGinRummyUtil.getDeadwoodPoints(bestMeldSets.get(0), MyGinRummyUtil.bitstringToCards(state.getHand()));
-        }
-        else {
-            //MyGinRummyUtil.printHandWithMelds(state.getHandCards());
-            bestMeldSets = MyGinRummyUtil.cardsToBestMeldSets(state.getHandCards());
-            deadwood = bestMeldSets.isEmpty() ?
-                    MyGinRummyUtil.getDeadwoodPoints(state.getHandCards()) :
-                    MyGinRummyUtil.getDeadwoodPoints(bestMeldSets.get(0), state.getHandCards());
-        }
+        bestMeldSets = MyGinRummyUtil.cardsToBestMeldSets(MyGinRummyUtil.bitstringToCards(state.getHand()));
+        deadwood = bestMeldSets.isEmpty() ?
+                MyGinRummyUtil.getDeadwoodPoints(MyGinRummyUtil.bitstringToCards(state.getHand())) :
+                MyGinRummyUtil.getDeadwoodPoints(bestMeldSets.get(0), MyGinRummyUtil.bitstringToCards(state.getHand()));
 
         // Check if deadwood of maximal meld is low enough to go out.
 
@@ -1015,22 +838,13 @@ public class BJG5493GinRummyPlayerV2 implements GinRummyPlayer {
             for(ArrayList<Card> meld : oppMelds) {
                 //Meld of cards of same rank
                 if(meld.get(0).getRank() == meld.get(1).getRank()) {
-                    if(encoded) {
-                        layoff.addAll(MyGinRummyUtil.getSameRank(MyGinRummyUtil.bitstringToCards(state.getHand()), meld.get(0)));
-                    }
-                    else layoff.addAll(MyGinRummyUtil.getSameRank(state.getHandCards(), meld.get(0)));
+                    layoff.addAll(MyGinRummyUtil.getSameRank(MyGinRummyUtil.bitstringToCards(state.getHand()), meld.get(0)));
                 }
 
                 //Cards of same suit
                 else {
-                    if(encoded) {
-                        layoff.addAll(MyGinRummyUtil.getSameSuit(MyGinRummyUtil.bitstringToCards(state.getHand()), meld.get(0), 1));
-                        layoff.addAll(MyGinRummyUtil.getSameSuit(MyGinRummyUtil.bitstringToCards(state.getHand()), meld.get(meld.size() - 1), 1));
-                    }
-                    else {
-                        layoff.addAll(MyGinRummyUtil.getSameSuit(state.getHandCards(), meld.get(0), 1));
-                        layoff.addAll(MyGinRummyUtil.getSameSuit(state.getHandCards(), meld.get(meld.size() - 1), 1));
-                    }
+                    layoff.addAll(MyGinRummyUtil.getSameSuit(MyGinRummyUtil.bitstringToCards(state.getHand()), meld.get(0), 1));
+                    layoff.addAll(MyGinRummyUtil.getSameSuit(MyGinRummyUtil.bitstringToCards(state.getHand()), meld.get(meld.size() - 1), 1));
                 }
             }
 
@@ -1039,7 +853,7 @@ public class BJG5493GinRummyPlayerV2 implements GinRummyPlayer {
              * a better config is available.
              */
 
-            ArrayList<Card> temp = null;
+            ArrayList<Card> temp;
             ArrayList<ArrayList<Card>> bestMeldSet = bestMeldSets.get(0);
             int minDeadwood = deadwood;
 
@@ -1048,8 +862,7 @@ public class BJG5493GinRummyPlayerV2 implements GinRummyPlayer {
             //Go through EVERY permutation of potential layoffs to find the one that leaves the best deadwood
             for(int i = 0; i < Math.pow(2, layoff.size()); i++) {
                 String bString = Integer.toBinaryString(i);
-                if(encoded) temp = MyGinRummyUtil.bitstringToCards(state.getHand());
-                else temp = new ArrayList<>(state.getHandCards());
+                temp = MyGinRummyUtil.bitstringToCards(state.getHand());
 
                 for(int j = 0; j < bString.length(); j++) {
                     if(bString.charAt(bString.length() - 1 - j) == '1') {
@@ -1104,50 +917,68 @@ public class BJG5493GinRummyPlayerV2 implements GinRummyPlayer {
     public void reportFinalHand(int playerNum, ArrayList<Card> hand) {
         // Ignored by simple player, but could affect strategy of more complex player.
     }
-
 }
 
-/*
- * Class to record details about the state of the game
+/**
+ * Class to record details about the current state of the game
  */
 class State {
 
-    private long hand; //Our hand, as a bitstring
-    private long seen; //Cards which have been seen, as a bitstring
-    private long oppHand; //Cards which we know the opponent has, as a bitstring
-    private long oppDiscard; //Cards which the opponent discarded, as a bitstring
-    private long oppForwent; //Cards which the opponent ignored when face-up, as a bitstring
-    private int faceUp; //Face-up card id
-    private int topCard; //Index into deck for top card
+    //<editor-fold desc="Instance Variables">
+    /**
+     * Our hand
+     */
+    private long hand;
 
-    private ArrayList<Card> handCards;
-    private ArrayList<Card> seenCards;
-    private ArrayList<Card> oppHandCards;
-    private ArrayList<Card> oppDiscardCards;
-    private Card faceUpCard;
+    /**
+     * Cards which have been seen by the player
+     */
+    private long seen;
 
-    private boolean encoded; //If cards are encoded as longs, true. For debugging.
+    /**
+     * Cards which we know are currently in the opponent hand
+     */
+    private long oppHand;
 
-    private int turn; //Current turn of the game
-    private int num_remaining; //Number of remaining face-down cards
+    /**
+     * Cards which we have seen the opponent discard
+     */
+    private long oppDiscard;
 
-    State(ArrayList<Card> hand, boolean encoded) {
-        this.encoded = encoded;
+    /**
+     * Cards which the opponent has ignored when face-up
+     */
+    private long oppForwent;
 
-        if(this.encoded) {
-            this.hand = MyGinRummyUtil.cardsToBitstring(hand);
-            seen = this.hand;
-            oppHand = 0L;
-            oppDiscard = 0L;
-            oppForwent = 0L;
-        }
+    /**
+     * The id of the current face-up card
+     */
+    private int faceUp;
 
-        else {
-            this.handCards = new ArrayList<>(hand);
-            this.seenCards = new ArrayList<>(handCards);
-            this.oppHandCards = new ArrayList<>();
-            this.oppDiscardCards = new ArrayList<>();
-        }
+    /**
+     * Index into deck for top card
+     */
+    private int topCard;
+
+    /**
+     * Current turn of the game
+     */
+    private int turn;
+
+    /**
+     * Number of remaining cards in the deck
+     */
+    private int num_remaining;
+    //</editor-fold>
+
+    State(ArrayList<Card> hand) {
+
+        this.hand = MyGinRummyUtil.cardsToBitstring(hand);
+        seen = this.hand;
+        oppHand = 0L;
+        oppDiscard = 0L;
+        oppForwent = 0L;
+
 
         turn = 0;
         topCard = 0;
@@ -1155,234 +986,81 @@ class State {
         num_remaining = 32;
     }
 
+    /**
+     * Clear the game state to be used again
+     */
     void clear() {
-        if(encoded) hand = seen = oppHand = oppDiscard = 0L;
-        else handCards = seenCards = oppHandCards = oppDiscardCards = null;
+        hand = seen = oppHand = oppDiscard = 0L;
         faceUp = turn = num_remaining = topCard = 0;
     }
 
-    int getTurn() {
-        return turn;
-    }
-
-    void nextTurn() {
-        turn++;
-    }
-
-    public long getHand() {
-        return hand;
-    }
-
-    public ArrayList<Card> getHandCards() {
-        return handCards;
-    }
-
-    public void setHand(long hand) {
-        this.hand = hand;
-    }
-
-    public void setHand(ArrayList<Card> hand) {
-        this.hand = MyGinRummyUtil.cardsToBitstring(hand);
-    }
-
-    public void setHandCards(ArrayList<Card> handCards) {
-        this.handCards = new ArrayList<>(handCards);
-    }
-
+    //<editor-fold desc="Methods to add and remove cards from the lists recorded in this class">
+    /**
+     * The following methods are for adding and removing cards/sets of cards from a hand. I don't think they need to
+     * documented.
+     */
     public void addToHand(int card_id) {
         this.hand = MyGinRummyUtil.add(this.hand, card_id);
-    }
-
-    public void addToHandCards(Card c) {
-        this.handCards.add(c);
     }
 
     public void addAllToHand(long cards) {
         this.hand = MyGinRummyUtil.addAll(this.hand, cards);
     }
 
-    public void addAllToHandCards(ArrayList<Card> cards) {
-        this.handCards.addAll(cards);
-    }
-
     public void removeFromHand(int card_id) {
         this.hand = MyGinRummyUtil.remove(this.hand, card_id);
-    }
-
-    public void removeFromHandCards(Card c) {
-        this.handCards.remove(c);
     }
 
     public void removeAllFromHand(long cards) {
         this.hand = MyGinRummyUtil.removeAll(this.hand, cards);
     }
 
-    public void removeAllFromHandCards(ArrayList<Card> cards) {
-        this.handCards.removeAll(cards);
-    }
-
-    public long getSeen() {
-        return seen;
-    }
-
-    public ArrayList<Card> getSeenCards() {
-        return seenCards;
-    }
-
     public void addToSeen(int card_id) {
         this.seen = MyGinRummyUtil.add(this.seen, card_id);
-    }
-
-    public void addToSeenCards(Card c) {
-        seenCards.add(c);
     }
 
     public void addAllToSeen(long cards) {
         this.seen = MyGinRummyUtil.addAll(this.seen, cards);
     }
 
-    public void addAllToSeenCards(ArrayList<Card> cards) {
-        seenCards.addAll(cards);
-    }
-
     public void removeFromSeen(int card_id) {
         this.seen = MyGinRummyUtil.remove(this.seen, card_id);
-    }
-
-    public void removeFromSeenCards(Card card) {
-        this.seenCards.remove(card);
     }
 
     public void removeAllFromSeen(long cards) {
         this.seen = MyGinRummyUtil.removeAll(this.seen, cards);
     }
 
-    public void removeAllFromSeenCards(ArrayList<Card> cards) {
-        this.seenCards.removeAll(cards);
-    }
-
-    public long getUnseen() {
-        return ~seen;
-    }
-
-    public ArrayList<Card> getUnseenCards() {
-        return MyGinRummyUtil.bitstringToCards(~MyGinRummyUtil.cardsToBitstring(seenCards));
-    }
-
-    public long getOppHand() {
-        return oppHand;
-    }
-
-    public ArrayList<Card> getOppHandCards() {
-        return oppHandCards;
-    }
-
-    public void setOppHand(long oppHand) {
-        this.oppHand = oppHand;
-    }
-
-    public void setOppHand(ArrayList<Card> oppHand) {
-        this.oppHand = MyGinRummyUtil.cardsToBitstring(oppHand);
-    }
-
-    public void setOppHandCards(ArrayList<Card> oppHandCards) {
-        this.oppHandCards = new ArrayList<>(oppHandCards);
-    }
-
     public void addToOppHand(int card_id) {
         this.oppHand = MyGinRummyUtil.add(this.oppHand, card_id);
-    }
-
-    public void addToOppHandCards(Card c) {
-        this.oppHandCards.add(c);
     }
 
     public void addAllToOppHand(long cards) {
         this.oppHand = MyGinRummyUtil.addAll(this.oppHand, cards);
     }
 
-    public void addAllToOppHandCards(ArrayList<Card> cards) {
-        this.oppHandCards.addAll(cards);
-    }
-
     public void removeFromOppHand(int card_id) {
         this.oppHand = MyGinRummyUtil.remove(this.oppHand, card_id);
-    }
-
-    public void removeFromOppHandCards(Card c) {
-        this.oppHandCards.remove(c);
     }
 
     public void removeAllFromOppHand(long cards) {
         this.oppHand = MyGinRummyUtil.removeAll(this.oppHand, cards);
     }
 
-    public void removeAllFromOppHandCards(ArrayList<Card> cards) {
-        this.oppHandCards.removeAll(cards);
-    }
-
-    public long getOppDiscard() {
-        return oppDiscard;
-    }
-
-    public ArrayList<Card> getOppDiscardCards() {
-        return oppDiscardCards;
-    }
-
-    public void setOppDiscard(long oppDiscard) {
-        this.oppDiscard = oppDiscard;
-    }
-
-    public void setOppDiscard(ArrayList<Card> oppDiscard) {
-        this.oppDiscard = MyGinRummyUtil.cardsToBitstring(oppDiscard);
-    }
-
-    public void setOppDiscardCards(ArrayList<Card> oppDiscardCards) {
-        this.oppHandCards = new ArrayList<>(oppDiscardCards);
-    }
-
     public void addToOppDiscard(int card_id) {
         this.oppDiscard = MyGinRummyUtil.add(this.oppDiscard, card_id);
-    }
-
-    public void addToOppDiscardsCards(Card c) {
-        this.oppDiscardCards.add(c);
     }
 
     public void addAllToOppDiscard(long cards) {
         this.oppDiscard = MyGinRummyUtil.addAll(this.oppDiscard, cards);
     }
 
-    public void addAllToOppDiscardCards(ArrayList<Card> cards) {
-        this.oppDiscardCards.addAll(cards);
-    }
-
     public void removeFromOppDiscard(int card_id) {
         this.oppDiscard = MyGinRummyUtil.remove(this.oppDiscard, card_id);
     }
 
-    public void removeFromOppDiscardCards(Card c) {
-        this.oppDiscardCards.remove(c);
-    }
-
     public void removeAllFromOppDiscard(long cards) {
         this.oppDiscard = MyGinRummyUtil.removeAll(this.oppDiscard, cards);
-    }
-
-    public void removeAllFromOppDiscardCards(ArrayList<Card> cards) {
-        this.oppDiscardCards.removeAll(cards);
-    }
-
-    public long getOppForwent() {
-        return oppForwent;
-    }
-
-    public void setOppForwent(long oppForwent) {
-        this.oppForwent = oppForwent;
-    }
-
-    public void setOppForwent(ArrayList<Card> oppForwent) {
-        this.oppForwent = MyGinRummyUtil.cardsToBitstring(oppForwent);
     }
 
     public void addToOppForwent(int card_id) {
@@ -1400,45 +1078,20 @@ class State {
     public void removeAllFromOppForwent(long cards) {
         this.oppForwent = MyGinRummyUtil.removeAll(this.oppForwent, cards);
     }
+    //</editor-fold>
 
-    public int getFaceUp() {
-        return faceUp;
+    /**
+     * Increment the turn
+     */
+    public void nextTurn() {
+        turn++;
     }
 
-    public Card getFaceUpCard() {
-        return faceUpCard;
-    }
-
-    public void setFaceUp(int faceUp) {
-        this.faceUp = faceUp;
-    }
-
-    public void setFaceUp(Card c) {
-        this.faceUp = c.getId();
-    }
-
-    public void setFaceUpCard(Card c) {
-        this.faceUpCard = c;
-    }
-
-    public int getNum_remaining() {
-        return num_remaining;
-    }
-
+    /**
+     * Decrement the number of cards remaining
+     */
     public void decreaseNumRemaining() {
         num_remaining--;
-    }
-
-    public int getTopCard() {
-        return topCard;
-    }
-
-    public void setTopCard(int topCard) {
-        this.topCard = topCard;
-    }
-
-    public void increaseTopCard() {
-        topCard++;
     }
 
     /**
@@ -1490,7 +1143,8 @@ class State {
     }
 
     /**
-     * @return a bitstring of all cards which are under the face-up card
+     * @return A bitstring of all cards which are under the face-up card. We know for a fact that neither us nor the
+     *  opponent can use any of these cards
      */
     public long getBuried() {
         long seen = this.seen;
@@ -1501,12 +1155,9 @@ class State {
         return seen;
     }
 
-    public ArrayList<Card> getBuriedCards() {
-        return MyGinRummyUtil.bitstringToCards(getBuried());
-    }
-
     /**
-     * @return a list of all cards which have not yet been seen
+     * @return A list of all cards which have not yet been seen. They are either still in the deck, or in the opponent's
+     *  hand.
      */
     public long getUnaccounted() {
         long unaccounted = MyGinRummyUtil.cardsToBitstring(new ArrayList<>(Arrays.asList(Card.allCards)));
@@ -1514,9 +1165,95 @@ class State {
         return unaccounted;
     }
 
-    public ArrayList<Card> getUnaccountedCards() {
-        return MyGinRummyUtil.bitstringToCards(getUnaccounted());
+    //<editor-fold desc="Getters and Setters">
+    public int getTurn() {
+        return turn;
     }
+
+    public long getHand() {
+        return hand;
+    }
+
+    public void setHand(long hand) {
+        this.hand = hand;
+    }
+
+    public void setHand(ArrayList<Card> hand) {
+        this.hand = MyGinRummyUtil.cardsToBitstring(hand);
+    }
+
+    public long getSeen() {
+        return seen;
+    }
+
+    public long getUnseen() {
+        return ~seen;
+    }
+
+    public long getOppHand() {
+        return oppHand;
+    }
+
+    public void setOppHand(long oppHand) {
+        this.oppHand = oppHand;
+    }
+
+    public void setOppHand(ArrayList<Card> oppHand) {
+        this.oppHand = MyGinRummyUtil.cardsToBitstring(oppHand);
+    }
+
+    public long getOppDiscard() {
+        return oppDiscard;
+    }
+
+    public void setOppDiscard(long oppDiscard) {
+        this.oppDiscard = oppDiscard;
+    }
+
+    public void setOppDiscard(ArrayList<Card> oppDiscard) {
+        this.oppDiscard = MyGinRummyUtil.cardsToBitstring(oppDiscard);
+    }
+
+    public long getOppForwent() {
+        return oppForwent;
+    }
+
+    public void setOppForwent(long oppForwent) {
+        this.oppForwent = oppForwent;
+    }
+
+    public void setOppForwent(ArrayList<Card> oppForwent) {
+        this.oppForwent = MyGinRummyUtil.cardsToBitstring(oppForwent);
+    }
+
+    public int getFaceUp() {
+        return faceUp;
+    }
+
+    public void setFaceUp(int faceUp) {
+        this.faceUp = faceUp;
+    }
+
+    public void setFaceUp(Card c) {
+        this.faceUp = c.getId();
+    }
+
+    public int getNum_remaining() {
+        return num_remaining;
+    }
+
+    public int getTopCard() {
+        return topCard;
+    }
+
+    public void setTopCard(int topCard) {
+        this.topCard = topCard;
+    }
+
+    public void increaseTopCard() {
+        topCard++;
+    }
+    //</editor-fold>
 
 }
 
@@ -2566,6 +2303,10 @@ class MyGinRummyUtil extends GinRummyUtil {
  */
  class GeneralStrategy {
 
+    //<editor-fold desc="Instance Variables">
+    /**
+     * A map from the information set to the probability that we will knock
+     */
     private HashMap<String, Double> knockStrat;
 
     /**
@@ -2613,6 +2354,7 @@ class MyGinRummyUtil extends GinRummyUtil {
      * Minimum change in deadwood the face-up card can contribute in order for us to consider drawing it.
      */
     private int minPickupDifference;
+    //</editor-fold>
 
     /**
      * Constructor
@@ -2658,6 +2400,7 @@ class MyGinRummyUtil extends GinRummyUtil {
 
     }
 
+    //<editor-fold desc="Getters and Setters">
     public HashMap<String, Double> getKnockStrat() {
         return knockStrat;
     }
@@ -2733,114 +2476,5 @@ class MyGinRummyUtil extends GinRummyUtil {
     public void setMinPickupDifference(int minPickupDifference) {
         this.minPickupDifference = minPickupDifference;
     }
+    //</editor-fold>
 }
-
-
-
-/*
- * WEEK 1 QUESTIONS:
- * 1) There are two decision points during a turn. The first is at the beginning of the turn, when it is time to draw a card. The second is at the end of the turn, when it is time to discard.
- *
- * 2) During the first decision point, the options are to either draw the face up card, or to decline the face up card, and (excluding the first turn), draw the face down card.
- *    During the second decision point, the player must choose which card to discard, and (if they have less than 10 deadwood points) whether to knock.
- *
- * 3) When choosing which card to draw (face up or face down), it's important to consider the face up card's utility, as we want to draw cards with higher utility. Some factors which could affect utility are:
- *      -The value of the card. Lower cards (like A, 2) increase deadwood by less, and so are better to have than higher cards which may already be in the hand (like 10, J).
- *      -Whether the card fits into a meld. If it does, then it doesn't contribute any deadwood points, and by forming the meld and/or discarding a card, can only reduce deadwood.
- *       This makes the card more useful than cards in the hand which don't fit into a meld.
- *          -We also need to consider whether the melds we are making are the best possible. (A run of {AH, AS, AD} and loose cards {2H, 3H, 2S, 3S, ...} is not as efficient as {AH, 2H, 3H}, {AS, 2S, 3S}, {AD, ...}.)
- *      -Whether the card has the potential to form a meld soon. It's less useful than the above, but still has the potential to lower deadwood.
- *          -Whether this is worth doing depends on the point in the game. Earlier in the game, it may be beneficial to do this with higher cards (say you have a K,
- *           and have the option to pick up another K) because the risk of getting knocked is low, but later on, we don't want to make "long" term investments, because
- *           we don't want to risk getting knocked while our deadwood is high. That said, if we are losing by a large margin, we may want to take more risks, because there's not much to lose. If we
- *           we are close in scores, we should play it safe. If we are winning by a large margin, we may want to take more risks, because messing up a little won't hurt too much.
- *          -Here, it is important to consider not only how close we are to a meld (like if we have 2 K's and need a 3rd), but how likely it is to pull another card which fits into the meld.
- *           If we saw that many of the cards which would coordinate well with the face up have been discarded (and possibly picked up by the other player), it isn't worth trying to use it.
- *           That said, if we haven't seen many cards which would coordinate well with the face up, we know that it is possible that there are useful cards soon to come. We can't predict the latter
- *           with too much certainty, because we don't know which face down cards the opponent has taken.
- *      -If we think the opponent is getting close to knocking, we might also consider whether we think the card could be inserted into one of their melds, as (assuming they don't get a gin)
- *       we could eliminate that from our final deadwood, and either lower the amount of points they win, or even undercut them.
- *
- *    It is also important to consider each card's utility when choosing what to discard (and the fact that you can't discard the face-up card, if you just drew it).
- *    Intuitively, the factors which would determine a card's utility should be the same as above. The main difference is that we want to draw high utility cards and discard low utility cards.
- *
- *    When deciding whether to knock, there's a few things to consider:
- *      -We can only knock if we have less than or equal to 10 deadwood points
- *      -If we have gin, we should knock immediately to prevent the opponent from further reducing their deadwood.
- *      -If our deadwood is really low (1, 2), we might want to hold out to try to undercut the opponent, as it is unlikely that their deadwood is lower than ours.
- *      -If our deadwood is higher (9, 10), we might want to hold out to try to reduce our deadwood further. We should only do this if not many turns have passed, though, as if we wait too
- *       long, we give the opponent time to get their deadwood lower than ours, causing them to knock, or for us to knock and get undercut.
- *      -If we also consider the card's we've seen enter and exit the opponent's hand, we can try to approximate their deadwood and decide when to knock. If we think they have very low deadwood,
- *       we should wait for them to knock so they don't undercut us. If we think they have higher deadwood (maybe even greater than 10), we can take our time and try to reduce our's a little more
- *       and then knock them. If we think they have close to us in deadwood, we should knock sooner rather than later to prevent them from lowering it further.
- *
- * 4) For drawing a card: willDrawFaceUpCard(week_5.Card card)
- *    For discarding a card: getDiscard()
- *    For knocking: getFinalMelds()
- * 5) I made the following changes:
- *                                   - Made class week_5.GameState to keep track of what is in my hand, what I know is in the opponent's hand, what cards I've seen, what cards the opponent has discarded, the face-up card, and the turn number.
- *                                   Got rid of the instance variables cards, and faceUpCard, and added week_5.GameState state.
- *                                   - Updated methods reportDraw and reportDiscard to record changes in what I've seen, and what is in the opponent's hand.
- *                                   - willDrawFaceUpCard now checks only the best meld sets, instead of all melds. This has a *very* small positive impact.
- *                                   - Made it so we avoid discarding cards if we think the opponent will pick it up (prefer discarding if they've discarded similar, and avoid discarding if they have similar)
- *                                   - Made is so that we pick up a card if we would only need one more card to make a meld, on turn 3 or earlier, or if its deadwood is 3 or less.
- *                                   - Made it so that on turns 4 and later, we pick up unmelded cards if they could fit into one of the opponent's known melds
- *                                   - Made it so that if the deadwood for the face-up card is 4 or more less than that of our highest unmelded card, we pick it up
- *                                   - Made it so that we knock if our deadwood is 1 or less. Otherwise, wait it out and try to undercut.
- * 6) MyGinRummyPlayer won against SimpleGinRummyPlayer in ~67% of the games.
- */
-
-/*
- * WEEK 2 QUESTIONS:
- * Notes:
- *      - My background in economics is slim, but I wonder if it would be worthwhile to consider the (expected) marginal benefit/cost of waiting one more turn to knock rather than knocking.
- *          Do I expect that waiting one more turn will lower my deadwood enough that it exceeds the amount that I expect my opponent's deadwood will lower in the same period of time?
- *          This would be difficult to do effectively without sufficient knowledge of what's in my opponent's hand, I think.
- *      - When considering whether or not to discard a single, I think it would be worthwhile to consider the probability that I will pick up a card to make it a duple within x turns.
- *      - Similarly, when considering whether or not to discard a card which is part of a tuple, I think it would be worthwhile to consider the probability that I will pick up a card to make it a meld within y turns.
- *      - I made another player, InputPlayer, which makes decisions based off of user input. I made it so that it prints out the state of the game at the beginning of willDrawFaceUpCard.
- *          - This allowed me to get a better "feel" on the opponent's strategies. For one, I noted that it picks up the face-down far more often than the face-up, and so it's not very effective
- *              to base decisions on what I know is in their hand. It is useful more often to look at what they've discarded and neglected to pick up from the face-up pile.
- *              - That said, looking at its algorithm for willDrawFaceUp, if they do pick up a face-up, it must be in a meld, which is useful to know.
- * Changelist:
- *      - Created week_5.Strategy class, containing parameters for different conditions. It is current a fixed strategy, nothing crazy like the HMC one yet.
- *          - It considers a lot of different factors, but right now the only ones that I am using are maxKnockDeadwood, maxDupleDeadwood, minThirdCardProb, minDupleDiscardTurn, minLayoffTurn and minPickupDifference
- *              - maxKnockDeadwood is the maximum our deadwood can be before knocking. It is currently 1.
- *              - maxDupleDeadwood is the maximum deadwood a card in a duple can have before we consider discarding it. It is currently a 5.
- *              - minThirdCardProb is the minimum probability that we can make a duple into a meld quickly in order to consider keeping the cards. It is currently 0.01 (keep duple unless it's impossible to complete the meld).
- *              - minDupleDiscardTurn is the first turn where we will stop trying to hold onto duples containing a card with deadwood higher than maxDupleDeadwood. It is currently an 8.
- *              - minPickupDifference is the minimum difference there has to be between the face-up and the card in our hand with the worst deadwood in order to pick it up, if it would be a single. It is currently a 9.
- *              - minLayoffTurn is the first turn where we will start trying to pick up cards that are in the opponent's melds to try to lay them off.
- *      - Incorporated values from strategy into willDrawFaceUpCard, findDiscard, getFinalMelds
- *      - Added condition to findDiscard, to avoid discarding cards in a duple
- *      - Made it so that we don't try to keep duples if there are no more face-down cards which could complete it
- *      - Tinkered with values for strategy to find the best combination
- *      -Out of the remaining cards, find any cards who's removal would drop the overall deadwood by at least strategy.getMinPickupDifference(). If face-up is one of these, dont pick it up.
- *      - Made method getMinThirdCardProb. Currently, returns 1.0 if the face-down pile still contains cards which could complete the meld, given a duple. Returns 0.0 otherwise. Room to expand on.
- *
- * Last week, my win rate was ~67%. Now, my win rate is ~68%. I feel like I made some significant changes, but the amount of change in my win rate is very low, so they must mostly
- *  just be helpful in rare cases. I'll need to put more thought to it
- */
-
-/*
- * WEEK 3 QUESTIONS:
- * Decision point strategies:
- *
- * Draw face-up:
- *  -If picking up the face-up card will lower our deadwood by an amount that is at least strategy.getMinPickupDifference() [3],
- *      and it lowers it more than we expect the face-down card to draw it.
- *  -If the card can't be melded within one turn, and its deadwood is greater than maxDupleDeadwood [6], or if it can't be melded
- *      within 2 turns and its deadwood is greater than maxSingleDeadwood [3], don't draw it.
- *  -If the card improves our deadwood by at least maxDupleDeadwood [6], and it would help an opponent meld, draw it.
- *  -If the change in deadwood from picking up the face-up is within 2 of the worst possible change in deadwood from a discard,
- *      don't pick it up. Otherwise, pick it up.
- * Discard:
- *  -Potential discards should be cards who's discard would lower deadwood the most.
- *  -Prefer to discard cards who cannot be melded even after 2 draws. If there are none (or no cards can), prefer those
- *      who can't be melded after 1 draw.
- *  -Avoid discarding cards which we think the opponent can make a meld from (or at least get closer to one).
- *  -Prefer to discard cards if the opponent has discarded compatible cards to.
- * Knock:
- *  -If deadwood is less than or equal to maxKnockDeadwood [1], knock.
- *
- */

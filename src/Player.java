@@ -94,6 +94,6 @@ public class Player {
 		this.knockStrategy = knockStrategy;
 	}
 
-
-
+	
+	
 }

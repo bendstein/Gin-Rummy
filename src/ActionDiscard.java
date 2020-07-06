@@ -9,7 +9,7 @@ public class ActionDiscard extends Action {
     /**
      * 	Constructor
      * 
-     * @param cardAsBitstring a bitstring representation of the card to be discarded in this action
+     * @param cardAsBitString a bitstring representation of the card to be discarded in this action
      * @param p the probability that this action will be taken in a strategy
      * @param infoset the infoset at the parent node of this action in the Game Tree
      */
@@ -28,7 +28,7 @@ public class ActionDiscard extends Action {
 	/**
 	 * @return the card to be discarded in this action
 	 */
-	public Card getCardAsObject() {
+	public Card getCardAsObject() { 
 		return PshUtil.bitStringToCard(cardAsBitString);
 	}
 	
