@@ -5,10 +5,10 @@ public class Driver {
 	private static Double util = 0.0;
 	
 	public static void main(String[] args) throws FileNotFoundException, InterruptedException {
-		final int TOTAL_ROUNDS = 100;
-		final int TRAINING_GAMES_PER_ROUND = 100;
-		final int EVALUATION_GAMES_PER_ROUND = 100;
-        final int CONCURRENT_THREADS = 1;
+		final int TOTAL_ROUNDS = 5;
+		final int TRAINING_GAMES_PER_ROUND = 1000;
+		final int EVALUATION_GAMES_PER_ROUND = 5;
+        final int CONCURRENT_THREADS = 4;
         
 		Player basePlayer = new Player(new StrategyDraw(false), new StrategyDiscard(false), new StrategyKnock(false));
 		Player cfrPlayer = new Player(new StrategyDrawCFR(false), new StrategyDiscard(false), new StrategyKnockCFR(false));

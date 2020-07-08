@@ -40,7 +40,8 @@ public class StrategyKnockCFR extends StrategyKnock {
 		}
 		else {
 			// I can knock, let's see if I should
-			strategy = new ActionKnock[] {new ActionKnock(true, 0.0, deadwood + "_k"), new ActionKnock(false, 0.0, deadwood + "_n")};
+			strategy = new ActionKnock[] {new ActionKnock(true, 0.0, deadwood + "_" + state.getTopCard() + "_k"),
+					new ActionKnock(false, 0.0, deadwood /*+ "_" + state.getTopCard()*/ + "_n")};
 			getProbabilities(strategy);			
 		}
 		return strategy;
