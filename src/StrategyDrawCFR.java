@@ -1,5 +1,3 @@
-import sun.reflect.generics.tree.Tree;
-
 import java.io.FileNotFoundException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
@@ -36,7 +34,7 @@ public class StrategyDrawCFR extends StrategyDraw {
 
 		//Card probabilities are uniformly distributed, so probability is 1d/unaccountedList.size().
 		for(Card card : unaccountedList)
-			sum += 1d/unaccountedList.size() * MyGinRummyUtil.makesNewMeld(GinRummyUtil.bitstringToCards(state.getCurrentPlayerCards()), card);
+			sum += 1d/unaccountedList.size() * MyGinRummyUtil.getImprovement(GinRummyUtil.bitstringToCards(state.getCurrentPlayerCards()), card);
 
 
 		//Get the number of melds you can make with the face-up

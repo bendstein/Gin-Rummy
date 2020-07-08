@@ -46,12 +46,17 @@ public class BJG5493GinRummyPlayerV2 implements GinRummyPlayer {
     public BJG5493GinRummyPlayerV2() {
 
         //Information set recorded including index into deck, but only considering deadwood here
-        HashMap<String, Double> strat = new HashMap<>();
-        for(int i = 1; i <= 10; i++) {
-            for(int j = 0; j <= 50; j++) {
-                strat.put(String.format("%d_%d_k", i, j), 0.0);
+        HashMap<String, Double> knockStrat = new HashMap<String, Double>() {
+            {
+
             }
-        }
+        };
+
+        HashMap<String, Double> drawStrat = new HashMap<String, Double>() {
+            {
+
+            }
+        };
 
         /*
          * Order of strategy parameters:
@@ -62,525 +67,7 @@ public class BJG5493GinRummyPlayerV2 implements GinRummyPlayer {
          * minSingleDiscardTurn
          * minPickupDifference
          */
-        generalStrategy = new GeneralStrategy(MyGinRummyUtil.decoded("34466"), strat);
-
-        //With the "refined" abstraction including deadwood and index into deck
-        /*
-        generalStrategy = new GeneralStrategy(MyGinRummyUtil.decoded("34564"),
-                new HashMap<String, Double>() {
-                {
-                    put("1_0_k", 0.500);
-                    put("1_1_k", 0.500);
-                    put("1_2_k", 0.500);
-                    put("1_3_k", 0.500);
-                    put("1_4_k", 0.500);
-                    put("1_5_k", 0.500);
-                    put("1_6_k", 0.500);
-                    put("1_7_k", 0.500);
-                    put("1_8_k", 0.500);
-                    put("1_9_k", 0.500);
-                    put("1_10_k", 0.500);
-                    put("1_11_k", 0.500);
-                    put("1_12_k", 0.500);
-                    put("1_13_k", 0.500);
-                    put("1_14_k", 0.500);
-                    put("1_15_k", 0.500);
-                    put("1_16_k", 0.500);
-                    put("1_17_k", 0.500);
-                    put("1_18_k", 0.500);
-                    put("1_19_k", 0.500);
-                    put("1_20_k", 0.500);
-                    put("1_21_k", 0.101);
-                    put("1_22_k", 0.041);
-                    put("1_23_k", 0.062);
-                    put("1_24_k", 0.002);
-                    put("1_25_k", 0.000);
-                    put("1_26_k", 0.000);
-                    put("1_27_k", 0.000);
-                    put("1_28_k", 0.000);
-                    put("1_29_k", 0.000);
-                    put("1_30_k", 0.000);
-                    put("1_31_k", 0.000);
-                    put("1_32_k", 0.000);
-                    put("1_33_k", 0.000);
-                    put("1_34_k", 0.001);
-                    put("1_35_k", 0.000);
-                    put("1_36_k", 0.000);
-                    put("1_37_k", 0.000);
-                    put("1_38_k", 0.000);
-                    put("1_39_k", 0.000);
-                    put("1_40_k", 0.000);
-                    put("1_41_k", 0.001);
-                    put("1_42_k", 0.000);
-                    put("1_43_k", 0.000);
-                    put("1_44_k", 0.000);
-                    put("1_45_k", 0.000);
-                    put("1_46_k", 0.001);
-                    put("1_47_k", 0.000);
-                    put("1_48_k", 0.001);
-                    put("1_49_k", 0.004);
-                    put("1_50_k", 0.500);
-                    put("2_0_k", 0.500);
-                    put("2_1_k", 0.500);
-                    put("2_2_k", 0.500);
-                    put("2_3_k", 0.500);
-                    put("2_4_k", 0.500);
-                    put("2_5_k", 0.500);
-                    put("2_6_k", 0.500);
-                    put("2_7_k", 0.500);
-                    put("2_8_k", 0.500);
-                    put("2_9_k", 0.500);
-                    put("2_10_k", 0.500);
-                    put("2_11_k", 0.500);
-                    put("2_12_k", 0.500);
-                    put("2_13_k", 0.500);
-                    put("2_14_k", 0.500);
-                    put("2_15_k", 0.500);
-                    put("2_16_k", 0.500);
-                    put("2_17_k", 0.500);
-                    put("2_18_k", 0.500);
-                    put("2_19_k", 0.500);
-                    put("2_20_k", 0.500);
-                    put("2_21_k", 0.067);
-                    put("2_22_k", 0.006);
-                    put("2_23_k", 0.000);
-                    put("2_24_k", 0.004);
-                    put("2_25_k", 0.012);
-                    put("2_26_k", 0.000);
-                    put("2_27_k", 0.009);
-                    put("2_28_k", 0.005);
-                    put("2_29_k", 0.001);
-                    put("2_30_k", 0.002);
-                    put("2_31_k", 0.001);
-                    put("2_32_k", 0.001);
-                    put("2_33_k", 0.000);
-                    put("2_34_k", 0.000);
-                    put("2_35_k", 0.000);
-                    put("2_36_k", 0.001);
-                    put("2_37_k", 0.000);
-                    put("2_38_k", 0.001);
-                    put("2_39_k", 0.000);
-                    put("2_40_k", 0.000);
-                    put("2_41_k", 0.000);
-                    put("2_42_k", 0.006);
-                    put("2_43_k", 0.000);
-                    put("2_44_k", 0.002);
-                    put("2_45_k", 0.000);
-                    put("2_46_k", 0.001);
-                    put("2_47_k", 0.000);
-                    put("2_48_k", 0.000);
-                    put("2_49_k", 0.000);
-                    put("2_50_k", 0.500);
-                    put("3_0_k", 0.500);
-                    put("3_1_k", 0.500);
-                    put("3_2_k", 0.500);
-                    put("3_3_k", 0.500);
-                    put("3_4_k", 0.500);
-                    put("3_5_k", 0.500);
-                    put("3_6_k", 0.500);
-                    put("3_7_k", 0.500);
-                    put("3_8_k", 0.500);
-                    put("3_9_k", 0.500);
-                    put("3_10_k", 0.500);
-                    put("3_11_k", 0.500);
-                    put("3_12_k", 0.500);
-                    put("3_13_k", 0.500);
-                    put("3_14_k", 0.500);
-                    put("3_15_k", 0.500);
-                    put("3_16_k", 0.500);
-                    put("3_17_k", 0.500);
-                    put("3_18_k", 0.500);
-                    put("3_19_k", 0.500);
-                    put("3_20_k", 0.500);
-                    put("3_21_k", 0.287);
-                    put("3_22_k", 0.137);
-                    put("3_23_k", 0.033);
-                    put("3_24_k", 0.063);
-                    put("3_25_k", 0.004);
-                    put("3_26_k", 0.008);
-                    put("3_27_k", 0.000);
-                    put("3_28_k", 0.000);
-                    put("3_29_k", 0.000);
-                    put("3_30_k", 0.001);
-                    put("3_31_k", 0.000);
-                    put("3_32_k", 0.000);
-                    put("3_33_k", 0.000);
-                    put("3_34_k", 0.259);
-                    put("3_35_k", 0.252);
-                    put("3_36_k", 0.428);
-                    put("3_37_k", 0.434);
-                    put("3_38_k", 0.534);
-                    put("3_39_k", 0.082);
-                    put("3_40_k", 0.071);
-                    put("3_41_k", 0.023);
-                    put("3_42_k", 0.001);
-                    put("3_43_k", 0.016);
-                    put("3_44_k", 0.004);
-                    put("3_45_k", 0.008);
-                    put("3_46_k", 0.001);
-                    put("3_47_k", 0.004);
-                    put("3_48_k", 0.001);
-                    put("3_49_k", 0.000);
-                    put("3_50_k", 0.500);
-                    put("4_0_k", 0.500);
-                    put("4_1_k", 0.500);
-                    put("4_2_k", 0.500);
-                    put("4_3_k", 0.500);
-                    put("4_4_k", 0.500);
-                    put("4_5_k", 0.500);
-                    put("4_6_k", 0.500);
-                    put("4_7_k", 0.500);
-                    put("4_8_k", 0.500);
-                    put("4_9_k", 0.500);
-                    put("4_10_k", 0.500);
-                    put("4_11_k", 0.500);
-                    put("4_12_k", 0.500);
-                    put("4_13_k", 0.500);
-                    put("4_14_k", 0.500);
-                    put("4_15_k", 0.500);
-                    put("4_16_k", 0.500);
-                    put("4_17_k", 0.500);
-                    put("4_18_k", 0.500);
-                    put("4_19_k", 0.500);
-                    put("4_20_k", 0.500);
-                    put("4_21_k", 0.854);
-                    put("4_22_k", 0.739);
-                    put("4_23_k", 0.886);
-                    put("4_24_k", 0.293);
-                    put("4_25_k", 0.299);
-                    put("4_26_k", 0.027);
-                    put("4_27_k", 0.011);
-                    put("4_28_k", 0.005);
-                    put("4_29_k", 0.009);
-                    put("4_30_k", 0.004);
-                    put("4_31_k", 0.011);
-                    put("4_32_k", 0.000);
-                    put("4_33_k", 0.017);
-                    put("4_34_k", 0.000);
-                    put("4_35_k", 0.003);
-                    put("4_36_k", 0.005);
-                    put("4_37_k", 0.003);
-                    put("4_38_k", 0.000);
-                    put("4_39_k", 0.001);
-                    put("4_40_k", 0.000);
-                    put("4_41_k", 0.000);
-                    put("4_42_k", 0.000);
-                    put("4_43_k", 0.000);
-                    put("4_44_k", 0.000);
-                    put("4_45_k", 0.000);
-                    put("4_46_k", 0.000);
-                    put("4_47_k", 0.000);
-                    put("4_48_k", 0.000);
-                    put("4_49_k", 0.001);
-                    put("4_50_k", 0.500);
-                    put("5_0_k", 0.500);
-                    put("5_1_k", 0.500);
-                    put("5_2_k", 0.500);
-                    put("5_3_k", 0.500);
-                    put("5_4_k", 0.500);
-                    put("5_5_k", 0.500);
-                    put("5_6_k", 0.500);
-                    put("5_7_k", 0.500);
-                    put("5_8_k", 0.500);
-                    put("5_9_k", 0.500);
-                    put("5_10_k", 0.500);
-                    put("5_11_k", 0.500);
-                    put("5_12_k", 0.500);
-                    put("5_13_k", 0.500);
-                    put("5_14_k", 0.500);
-                    put("5_15_k", 0.500);
-                    put("5_16_k", 0.500);
-                    put("5_17_k", 0.500);
-                    put("5_18_k", 0.500);
-                    put("5_19_k", 0.500);
-                    put("5_20_k", 0.500);
-                    put("5_21_k", 0.818);
-                    put("5_22_k", 0.966);
-                    put("5_23_k", 0.744);
-                    put("5_24_k", 0.995);
-                    put("5_25_k", 0.979);
-                    put("5_26_k", 0.138);
-                    put("5_27_k", 0.348);
-                    put("5_28_k", 0.002);
-                    put("5_29_k", 0.036);
-                    put("5_30_k", 0.019);
-                    put("5_31_k", 0.003);
-                    put("5_32_k", 0.012);
-                    put("5_33_k", 0.000);
-                    put("5_34_k", 0.001);
-                    put("5_35_k", 0.005);
-                    put("5_36_k", 0.002);
-                    put("5_37_k", 0.003);
-                    put("5_38_k", 0.001);
-                    put("5_39_k", 0.000);
-                    put("5_40_k", 0.000);
-                    put("5_41_k", 0.000);
-                    put("5_42_k", 0.002);
-                    put("5_43_k", 0.000);
-                    put("5_44_k", 0.000);
-                    put("5_45_k", 0.000);
-                    put("5_46_k", 0.000);
-                    put("5_47_k", 0.000);
-                    put("5_48_k", 0.000);
-                    put("5_49_k", 0.000);
-                    put("5_50_k", 0.500);
-                    put("6_0_k", 0.500);
-                    put("6_1_k", 0.500);
-                    put("6_2_k", 0.500);
-                    put("6_3_k", 0.500);
-                    put("6_4_k", 0.500);
-                    put("6_5_k", 0.500);
-                    put("6_6_k", 0.500);
-                    put("6_7_k", 0.500);
-                    put("6_8_k", 0.500);
-                    put("6_9_k", 0.500);
-                    put("6_10_k", 0.500);
-                    put("6_11_k", 0.500);
-                    put("6_12_k", 0.500);
-                    put("6_13_k", 0.500);
-                    put("6_14_k", 0.500);
-                    put("6_15_k", 0.500);
-                    put("6_16_k", 0.500);
-                    put("6_17_k", 0.500);
-                    put("6_18_k", 0.500);
-                    put("6_19_k", 0.500);
-                    put("6_20_k", 0.500);
-                    put("6_21_k", 0.998);
-                    put("6_22_k", 0.997);
-                    put("6_23_k", 0.999);
-                    put("6_24_k", 0.991);
-                    put("6_25_k", 1.000);
-                    put("6_26_k", 0.993);
-                    put("6_27_k", 0.991);
-                    put("6_28_k", 0.954);
-                    put("6_29_k", 0.999);
-                    put("6_30_k", 0.970);
-                    put("6_31_k", 0.570);
-                    put("6_32_k", 0.813);
-                    put("6_33_k", 0.988);
-                    put("6_34_k", 0.985);
-                    put("6_35_k", 0.994);
-                    put("6_36_k", 0.250);
-                    put("6_37_k", 0.085);
-                    put("6_38_k", 0.000);
-                    put("6_39_k", 0.011);
-                    put("6_40_k", 0.000);
-                    put("6_41_k", 0.001);
-                    put("6_42_k", 0.001);
-                    put("6_43_k", 0.001);
-                    put("6_44_k", 0.001);
-                    put("6_45_k", 0.000);
-                    put("6_46_k", 0.000);
-                    put("6_47_k", 0.001);
-                    put("6_48_k", 0.003);
-                    put("6_49_k", 0.000);
-                    put("6_50_k", 0.500);
-                    put("7_0_k", 0.500);
-                    put("7_1_k", 0.500);
-                    put("7_2_k", 0.500);
-                    put("7_3_k", 0.500);
-                    put("7_4_k", 0.500);
-                    put("7_5_k", 0.500);
-                    put("7_6_k", 0.500);
-                    put("7_7_k", 0.500);
-                    put("7_8_k", 0.500);
-                    put("7_9_k", 0.500);
-                    put("7_10_k", 0.500);
-                    put("7_11_k", 0.500);
-                    put("7_12_k", 0.500);
-                    put("7_13_k", 0.500);
-                    put("7_14_k", 0.500);
-                    put("7_15_k", 0.500);
-                    put("7_16_k", 0.500);
-                    put("7_17_k", 0.500);
-                    put("7_18_k", 0.500);
-                    put("7_19_k", 0.500);
-                    put("7_20_k", 0.500);
-                    put("7_21_k", 0.998);
-                    put("7_22_k", 0.993);
-                    put("7_23_k", 0.999);
-                    put("7_24_k", 0.998);
-                    put("7_25_k", 0.995);
-                    put("7_26_k", 0.948);
-                    put("7_27_k", 0.986);
-                    put("7_28_k", 1.000);
-                    put("7_29_k", 0.989);
-                    put("7_30_k", 0.999);
-                    put("7_31_k", 0.652);
-                    put("7_32_k", 0.675);
-                    put("7_33_k", 0.819);
-                    put("7_34_k", 0.460);
-                    put("7_35_k", 0.021);
-                    put("7_36_k", 0.006);
-                    put("7_37_k", 0.000);
-                    put("7_38_k", 0.001);
-                    put("7_39_k", 0.001);
-                    put("7_40_k", 0.000);
-                    put("7_41_k", 0.000);
-                    put("7_42_k", 0.000);
-                    put("7_43_k", 0.000);
-                    put("7_44_k", 0.000);
-                    put("7_45_k", 0.001);
-                    put("7_46_k", 0.000);
-                    put("7_47_k", 0.000);
-                    put("7_48_k", 0.000);
-                    put("7_49_k", 0.001);
-                    put("7_50_k", 0.500);
-                    put("8_0_k", 0.500);
-                    put("8_1_k", 0.500);
-                    put("8_2_k", 0.500);
-                    put("8_3_k", 0.500);
-                    put("8_4_k", 0.500);
-                    put("8_5_k", 0.500);
-                    put("8_6_k", 0.500);
-                    put("8_7_k", 0.500);
-                    put("8_8_k", 0.500);
-                    put("8_9_k", 0.500);
-                    put("8_10_k", 0.500);
-                    put("8_11_k", 0.500);
-                    put("8_12_k", 0.500);
-                    put("8_13_k", 0.500);
-                    put("8_14_k", 0.500);
-                    put("8_15_k", 0.500);
-                    put("8_16_k", 0.500);
-                    put("8_17_k", 0.500);
-                    put("8_18_k", 0.500);
-                    put("8_19_k", 0.500);
-                    put("8_20_k", 0.500);
-                    put("8_21_k", 0.996);
-                    put("8_22_k", 1.000);
-                    put("8_23_k", 1.000);
-                    put("8_24_k", 1.000);
-                    put("8_25_k", 1.000);
-                    put("8_26_k", 0.996);
-                    put("8_27_k", 0.999);
-                    put("8_28_k", 0.991);
-                    put("8_29_k", 0.997);
-                    put("8_30_k", 0.995);
-                    put("8_31_k", 0.991);
-                    put("8_32_k", 0.975);
-                    put("8_33_k", 0.380);
-                    put("8_34_k", 0.018);
-                    put("8_35_k", 0.000);
-                    put("8_36_k", 0.000);
-                    put("8_37_k", 0.000);
-                    put("8_38_k", 0.000);
-                    put("8_39_k", 0.000);
-                    put("8_40_k", 0.000);
-                    put("8_41_k", 0.000);
-                    put("8_42_k", 0.001);
-                    put("8_43_k", 0.001);
-                    put("8_44_k", 0.002);
-                    put("8_45_k", 0.000);
-                    put("8_46_k", 0.001);
-                    put("8_47_k", 0.000);
-                    put("8_48_k", 0.001);
-                    put("8_49_k", 0.000);
-                    put("8_50_k", 0.500);
-                    put("9_0_k", 0.500);
-                    put("9_1_k", 0.500);
-                    put("9_2_k", 0.500);
-                    put("9_3_k", 0.500);
-                    put("9_4_k", 0.500);
-                    put("9_5_k", 0.500);
-                    put("9_6_k", 0.500);
-                    put("9_7_k", 0.500);
-                    put("9_8_k", 0.500);
-                    put("9_9_k", 0.500);
-                    put("9_10_k", 0.500);
-                    put("9_11_k", 0.500);
-                    put("9_12_k", 0.500);
-                    put("9_13_k", 0.500);
-                    put("9_14_k", 0.500);
-                    put("9_15_k", 0.500);
-                    put("9_16_k", 0.500);
-                    put("9_17_k", 0.500);
-                    put("9_18_k", 0.500);
-                    put("9_19_k", 0.500);
-                    put("9_20_k", 0.500);
-                    put("9_21_k", 0.999);
-                    put("9_22_k", 1.000);
-                    put("9_23_k", 0.997);
-                    put("9_24_k", 0.999);
-                    put("9_25_k", 1.000);
-                    put("9_26_k", 0.999);
-                    put("9_27_k", 0.999);
-                    put("9_28_k", 0.994);
-                    put("9_29_k", 0.991);
-                    put("9_30_k", 0.971);
-                    put("9_31_k", 0.992);
-                    put("9_32_k", 0.863);
-                    put("9_33_k", 0.808);
-                    put("9_34_k", 0.001);
-                    put("9_35_k", 0.002);
-                    put("9_36_k", 0.000);
-                    put("9_37_k", 0.000);
-                    put("9_38_k", 0.000);
-                    put("9_39_k", 0.000);
-                    put("9_40_k", 0.000);
-                    put("9_41_k", 0.001);
-                    put("9_42_k", 0.000);
-                    put("9_43_k", 0.000);
-                    put("9_44_k", 0.001);
-                    put("9_45_k", 0.000);
-                    put("9_46_k", 0.002);
-                    put("9_47_k", 0.003);
-                    put("9_48_k", 0.007);
-                    put("9_49_k", 0.003);
-                    put("9_50_k", 0.500);
-                    put("10_0_k", 0.500);
-                    put("10_1_k", 0.500);
-                    put("10_2_k", 0.500);
-                    put("10_3_k", 0.500);
-                    put("10_4_k", 0.500);
-                    put("10_5_k", 0.500);
-                    put("10_6_k", 0.500);
-                    put("10_7_k", 0.500);
-                    put("10_8_k", 0.500);
-                    put("10_9_k", 0.500);
-                    put("10_10_k", 0.500);
-                    put("10_11_k", 0.500);
-                    put("10_12_k", 0.500);
-                    put("10_13_k", 0.500);
-                    put("10_14_k", 0.500);
-                    put("10_15_k", 0.500);
-                    put("10_16_k", 0.500);
-                    put("10_17_k", 0.500);
-                    put("10_18_k", 0.500);
-                    put("10_19_k", 0.500);
-                    put("10_20_k", 0.500);
-                    put("10_21_k", 0.999);
-                    put("10_22_k", 0.999);
-                    put("10_23_k", 1.000);
-                    put("10_24_k", 1.000);
-                    put("10_25_k", 0.999);
-                    put("10_26_k", 0.999);
-                    put("10_27_k", 1.000);
-                    put("10_28_k", 0.999);
-                    put("10_29_k", 0.999);
-                    put("10_30_k", 0.991);
-                    put("10_31_k", 0.989);
-                    put("10_32_k", 0.305);
-                    put("10_33_k", 0.012);
-                    put("10_34_k", 0.000);
-                    put("10_35_k", 0.000);
-                    put("10_36_k", 0.000);
-                    put("10_37_k", 0.000);
-                    put("10_38_k", 0.000);
-                    put("10_39_k", 0.000);
-                    put("10_40_k", 0.000);
-                    put("10_41_k", 0.000);
-                    put("10_42_k", 0.002);
-                    put("10_43_k", 0.000);
-                    put("10_44_k", 0.001);
-                    put("10_45_k", 0.005);
-                    put("10_46_k", 0.000);
-                    put("10_47_k", 0.001);
-                    put("10_48_k", 0.005);
-                    put("10_49_k", 0.004);
-                    put("10_50_k", 0.500);
-        }});
-         */
+        generalStrategy = new GeneralStrategy(MyGinRummyUtil.decoded("34466"), knockStrat, drawStrat);
 
     }
 
@@ -601,6 +88,7 @@ public class BJG5493GinRummyPlayerV2 implements GinRummyPlayer {
         // If first turn, record the face-up card. All other unseen face-up cards should be recorded in reportDiscard()
         if(state.getTurn() == 0) {
             state.addToSeen(card_id);
+            state.increaseTopCard();
             state.decreaseNumRemaining();
         }
 
@@ -617,20 +105,31 @@ public class BJG5493GinRummyPlayerV2 implements GinRummyPlayer {
      * @return true if we would pick up card_id with the given hand
      */
     public boolean willDrawFaceUpCard(long hand, int card_id) {
+        int improvement = MyGinRummyUtil.getImprovement(hand, card_id);
+        boolean makesNewMeld = MyGinRummyUtil.makesNewMeld(hand, card_id);
+        double expectedDeadwoodForFaceDown = MyGinRummyUtil.expectedDeadwoodForNextDraw(state);
+        int numberOfMelds = state.getNumberOfPossibleMelds(card_id);
 
-        /*
+        if(improvement > 0 && makesNewMeld) return true;
+
+        String infoset = improvement + "_" + (int) Math.round(expectedDeadwoodForFaceDown) + "_" + numberOfMelds;
+
+        if(random.nextDouble() < generalStrategy.getDrawAt(infoset)) return true;
+        else return false;
+
+       /* *//*
          * First: If picking up the face-up card will lower our deadwood by an amount that is at
          * least strategy.getMinPickupDifference(), and it lowers it more than we expect the face-down card to
          * draw it.
-         */
+         *//*
 
-        int cost = MyGinRummyUtil.makesNewMeld(hand, card_id);
+        int cost = MyGinRummyUtil.getImprovement(hand, card_id);
         if(cost >= generalStrategy.getMinPickupDifference() &&
                 cost > MyGinRummyUtil.expectedDeadwoodForNextDraw(state)) return true;
 
-        /*
+        *//*
          * If the card can't be melded within 2 draws, don't draw it.
-         */
+         *//*
         long newCards = MyGinRummyUtil.add(hand, card_id);
 
         if(MyGinRummyUtil.getDeadwoodPoints(Card.getCard(card_id)) > generalStrategy.getMaxIsolatedSingleDeadwood()
@@ -638,39 +137,34 @@ public class BJG5493GinRummyPlayerV2 implements GinRummyPlayer {
         else if(MyGinRummyUtil.getDeadwoodPoints(Card.getCard(card_id)) > generalStrategy.getMaxSingleDeadwood()
                 && MyGinRummyUtil.contains(MyGinRummyUtil.getSingles(newCards, 0L, state), card_id)) return false;
 
-        /*
+        *//*
          * Next: If the card doesn't increase deadwood too much, and the opponent could meld it, draw the face-up.
-         */
+         *//*
         if(cost >= generalStrategy.getMaxSingleDeadwood() && MyGinRummyUtil.canOpponentMeld(Card.getCard(card_id), state)) return true;
 
 
-        /*
+        *//*
          * Then, look at all within 2 of the highest discards. If the list doesn't contain the face-up, pick it up. Otherwise, don't.
-         */
+         *//*
         long preferred = MyGinRummyUtil.findHighestDiscards(newCards, -1, -1, 1);
 
-        return !MyGinRummyUtil.contains(preferred, card_id);
+        return !MyGinRummyUtil.contains(preferred, card_id);*/
 
     }
 
     @Override
     public void reportDraw(int playerNum, Card drawnCard) {
 
-        //If drawn card is null, player drew face-down. Decrease numRemaining, and add to oppForwent
-        if(drawnCard == null) {
+        //If drawn card is null or its id != the face up, player drew face-down. Decrease numRemaining, and add to oppForwent
+        if(drawnCard == null || drawnCard.getId() != state.getFaceUp()) {
             state.decreaseNumRemaining();
             state.increaseTopCard();
-            state.addToOppForwent(state.getFaceUp());
+            if(playerNum != this.playerNum) state.addToOppForwent(state.getFaceUp());
         }
 
         // Ignore other player draws.  Add to cards if playerNum is this player.
         if (playerNum == this.playerNum) {
 
-            //If we drew face-down, decrease numRemaining.
-            if(drawnCard.getId() != state.getFaceUp()) {
-                state.increaseTopCard();
-                state.decreaseNumRemaining();
-            }
             state.addToHand(drawnCard.getId());
             this.drawn = drawnCard.getId();
 
@@ -822,9 +316,9 @@ public class BJG5493GinRummyPlayerV2 implements GinRummyPlayer {
         else if (!opponentKnocked) {
             if(deadwood == 0) return bestMeldSets.get(random.nextInt(bestMeldSets.size()));
 
-            String k = deadwood + "_" + state.getTopCard() + "_k";
+            String k = deadwood + "_" + state.getTopCard();
             double prob = generalStrategy.getKnockAt(k);
-            if(random.nextInt(1001)/1000d < prob)
+            if(random.nextDouble() < prob)
                 return bestMeldSets.get(random.nextInt(bestMeldSets.size()));
             else return null;
         }
@@ -982,7 +476,7 @@ class State {
 
 
         turn = 0;
-        topCard = 0;
+        topCard = 20;
         faceUp = -1;
         num_remaining = 32;
     }
@@ -992,7 +486,9 @@ class State {
      */
     void clear() {
         hand = seen = oppHand = oppDiscard = 0L;
-        faceUp = turn = num_remaining = topCard = 0;
+        faceUp = turn = 0;
+        num_remaining = 32;
+        topCard = 20;
     }
 
     //<editor-fold desc="Methods to add and remove cards from the lists recorded in this class">
@@ -1141,6 +637,46 @@ class State {
      */
     public int getUsefulnessToOpponent(int id) {
         return getPotentialOpponentMelds(id).size();
+    }
+
+    /**
+     * @param id Card to check
+     * @return The number of melds we could make with this card
+     */
+    public int getNumberOfPossibleMelds(int id) {
+
+        //All cards which are/could be available to the opponent
+        long available = getUnaccounted() + getHand();
+        ArrayList<Long> melds = new ArrayList<>();
+
+        //All available cards of the same rank as id
+        long sameRank = MyGinRummyUtil.getSameRank(available, id);
+        int[] sameRankIds = MyGinRummyUtil.bitstringToIDArray(sameRank);
+
+        //Add all potential same-rank melds to the list
+        for(int i : sameRankIds) {
+            for(int j : sameRankIds) {
+                if(i != j) {
+                    long meld = MyGinRummyUtil.idsToBitstring(new int[]{i, j, id});
+                    if(!melds.contains(meld)) melds.add(meld);
+                }
+            }
+        }
+
+        //All available adjacent cards to id of the same suit
+        long sameSuit = MyGinRummyUtil.getSameSuit(available, id, 1);
+        int[] sameSuitIds = MyGinRummyUtil.bitstringToIDArray(sameSuit);
+
+        //Add all potential same-suit melds to the list
+        if(sameSuitIds.length == 2) melds.add(MyGinRummyUtil.add(MyGinRummyUtil.idsToBitstring(sameSuitIds), id));
+
+        for(int i : sameSuitIds) {
+            long adj = MyGinRummyUtil.getSameSuit(available, i, 1);
+            int[] adjIds = MyGinRummyUtil.bitstringToIDArray(adj);
+            if(adjIds.length == 2) melds.add(MyGinRummyUtil.add(MyGinRummyUtil.idsToBitstring(sameSuitIds), i));
+        }
+
+        return melds.size();
     }
 
     /**
@@ -1615,11 +1151,39 @@ class MyGinRummyUtil extends GinRummyUtil {
 
     /**
      * @param hand A hand of cards
+     * @param c The card we're checking
+     * @return true if the added card makes a new meld
+     */
+    public static boolean makesNewMeld(ArrayList<Card> hand, Card c) {
+        ArrayList<Card> newHand = new ArrayList<>(hand);
+        newHand.add(c);
+
+        ArrayList<ArrayList<ArrayList<Card>>> bestMeldSets = MyGinRummyUtil.cardsToBestMeldSets(newHand);
+        if(bestMeldSets.size() == 0) return false;
+
+        for(ArrayList<Card> meld : bestMeldSets.get(0)) {
+            if(meld.contains(c)) return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * @param hand A hand of cards
+     * @param id The card we're checking
+     * @return true if the added card makes a new meld
+     */
+    public static boolean makesNewMeld(long hand, int id) {
+        return makesNewMeld(MyGinRummyUtil.bitstringToCards(hand), Card.getCard(id));
+    }
+
+    /**
+     * @param hand A hand of cards
      * @param c The card we're considering
      * @return The change in deadwood from inserting c and discarding the worst card. If return value is negative,
      *  drawing c increases the overall deadwood of our hand.
      */
-    public static int makesNewMeld(ArrayList<Card> hand, Card c) {
+    public static int getImprovement(ArrayList<Card> hand, Card c) {
         int minDeadwood = Integer.MAX_VALUE;
         ArrayList<Card> newCards = new ArrayList<>(hand);
         newCards.add(c);
@@ -1644,8 +1208,8 @@ class MyGinRummyUtil extends GinRummyUtil {
      * @return The change in deadwood from inserting c and discarding the worst card. If return value is negative,
      *  drawing c increases the overall deadwood of our hand.
      */
-    public static int makesNewMeld(long hand, int c_id) {
-        return makesNewMeld(bitstringToCards(hand), Card.getCard(c_id));
+    public static int getImprovement(long hand, int c_id) {
+        return getImprovement(bitstringToCards(hand), Card.getCard(c_id));
     }
 
     /**
@@ -1830,7 +1394,7 @@ class MyGinRummyUtil extends GinRummyUtil {
         ArrayList<Card> unaccounted = bitstringToCards(state.getUnaccounted()); //Cards which have not been seen
         double sum = 0;
 
-        for(Card card : unaccounted) sum += 1d/unaccounted.size() * makesNewMeld(bitstringToCards(state.getHand()), card);
+        for(Card card : unaccounted) sum += 1d/unaccounted.size() * getImprovement(bitstringToCards(state.getHand()), card);
 
         return sum;
     }
@@ -2311,6 +1875,11 @@ class MyGinRummyUtil extends GinRummyUtil {
     private HashMap<String, Double> knockStrat;
 
     /**
+     * A map from the information set to the probability that we will draw
+     */
+    private HashMap<String, Double> drawStrat;
+
+    /**
      * Max deadwood a card can contribute to a hand while not being able to be melded within 2 turns,
      * in order for us to avoid discarding it.
      */
@@ -2360,30 +1929,11 @@ class MyGinRummyUtil extends GinRummyUtil {
     /**
      * Constructor
      */
-    GeneralStrategy(HashMap<String, Double> knockStrat, int maxIsolatedSingleDeadwood, int minIsolatedSingleDiscardTurn, int maxSingleDeadwood, int minSingleDiscardTurn,
-                    int minPickupDifference) {
 
-        this.knockStrat = new HashMap<>(knockStrat);
-
-        this.maxIsolatedSingleDeadwood = maxIsolatedSingleDeadwood <= 10 && maxIsolatedSingleDeadwood > 0 ? maxIsolatedSingleDeadwood : 10;
-        this.minIsolatedSingleDiscardTurn = Math.max(minIsolatedSingleDiscardTurn, 0);
-
-        this.maxSingleDeadwood = maxSingleDeadwood <= 10 && maxSingleDeadwood > 0 ? maxSingleDeadwood : 10;
-        this.minSingleDiscardTurn = Math.max(minSingleDiscardTurn, 0);
-
-        //this.minWaitForGinProbability = minWaitForGinProbability <= 1 && minWaitForGinProbability >= 0 ? minWaitForGinProbability : 0.0;
-
-        //this.minUndercutDeadwood = minUndercutDeadwood <= 10 && minUndercutDeadwood >= 0 ? minUndercutDeadwood : 10;
-
-        //this.minLayoffTurn = Math.max(minLayoffTurn, 0);
-
-        this.minPickupDifference = minPickupDifference <= 10 && minPickupDifference >= 0 ? minPickupDifference : 0;
-
-    }
-
-    GeneralStrategy(int[] strategy, HashMap<String, Double> knockStrat) {
+    GeneralStrategy(int[] strategy, HashMap<String, Double> knockStrat, HashMap<String, Double> drawStrat) {
 
         this.knockStrat = knockStrat;
+        this.drawStrat = drawStrat;
 
         this.maxIsolatedSingleDeadwood = strategy[1] <= 10 && strategy[1] > 0 ? strategy[1] : 10;
         this.minIsolatedSingleDiscardTurn = Math.max(strategy[2], 0);
@@ -2409,6 +1959,14 @@ class MyGinRummyUtil extends GinRummyUtil {
     public double getKnockAt(String s) {
         try {
             return knockStrat.get(s);
+        } catch (Exception e) {
+            return 0.0;
+        }
+    }
+
+    public double getDrawAt(String s) {
+        try {
+            return drawStrat.get(s);
         } catch (Exception e) {
             return 0.0;
         }
