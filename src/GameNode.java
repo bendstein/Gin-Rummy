@@ -110,7 +110,7 @@ public class GameNode {
 				probability[i] = actions[i].p;
 			else {
 				probability[i] = EPSILON/actions.length + (1d - EPSILON) * actions[i].p;
-				actions[i].p = 1 - probability[i];
+				//actions[i].p = 1 - probability[i];
 			}
 		}
 
@@ -119,7 +119,7 @@ public class GameNode {
 		// probability[i]
 
 		double sum = 0d;
-		double prob = Math.random();
+		double prob = prng.nextDouble();
 
 		for(int i = 0; i < probability.length; i++) {
 			sum += probability[i];
@@ -171,7 +171,7 @@ public class GameNode {
 		
 		// TODO: Update uP.pTail coming out of the recusion, so that, in the calling function,
 		// it will be equal to the probability we played from the node to the sampled terminal node
-		if(player == player_i) uP.pTail *= actions[actionIndex].p;
+		if(player == player_i) uP.pTail *= probability[actionIndex];
 
 		return uP;
 	}
@@ -213,7 +213,7 @@ public class GameNode {
 				probability[i] = discards[i].p;
 			else {
 				probability[i] = EPSILON/discards.length + (1d - EPSILON) * discards[i].p;
-				discards[i].p = 1 - probability[i];
+				//discards[i].p = 1 - probability[i];
 			}
 		}
 
@@ -258,7 +258,7 @@ public class GameNode {
 		// TODO: Update uP.pTail coming out of the recusion, so that, in the calling function,
 		// it will be equal to the probability we played from the node to the sampled terminal node 
 
-		if(player == player_i) uP.pTail *= discards[actionIndex].p;
+		if(player == player_i) uP.pTail *= probability[actionIndex];
 		
 		return uP;
 	}
@@ -347,7 +347,7 @@ public class GameNode {
 		// TODO: Update uP.pTail coming out of the recusion, so that, in the calling function,
 		// it will be equal to the probability we played from the node to the sampled terminal node 
 
-		if(player == player_i) uP.pTail *= actions[actionIndex].p;
+		if(player == player_i) uP.pTail *= probability[actionIndex];
 
 		return uP;
 	}

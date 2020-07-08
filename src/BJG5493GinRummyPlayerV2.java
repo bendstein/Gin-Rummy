@@ -67,7 +67,8 @@ public class BJG5493GinRummyPlayerV2 implements GinRummyPlayer {
         //With the "refined" abstraction including deadwood and index into deck
         /*
         generalStrategy = new GeneralStrategy(MyGinRummyUtil.decoded("34564"),
-                new HashMap<String, Double>() {{
+                new HashMap<String, Double>() {
+                {
                     put("1_0_k", 0.500);
                     put("1_1_k", 0.500);
                     put("1_2_k", 0.500);
