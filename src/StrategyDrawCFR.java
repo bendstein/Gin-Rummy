@@ -1,10 +1,18 @@
+import sun.reflect.generics.tree.Tree;
+
+import java.io.FileNotFoundException;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.TreeSet;
 
 public class StrategyDrawCFR extends StrategyDraw {
 
+	private TreeSet<String> infosets;
+
 	public StrategyDrawCFR(boolean training) {
 		super(training);
+		infosets = new TreeSet<>();
 	}
 
 	@Override
@@ -67,8 +75,13 @@ public class StrategyDrawCFR extends StrategyDraw {
 
 		int numberOfMelds = melds.size();
 
-		ActionDraw[] strategy = new ActionDraw[] {new ActionDraw(true, 0.0, improvement + "_" + (int) Math.round(sum) + "_" + numberOfMelds + "_y"),
-				new ActionDraw(false, 0.0, improvement + "_" + (int) Math.round(sum) + "_" + numberOfMelds + "_n")};
+		String infosetDraw = improvement + "_" + (int) Math.round(sum) + "_" + numberOfMelds;
+		String infosetDont = improvement + "_" + (int) Math.round(sum) + "_" + numberOfMelds;
+
+		infosets.add(infosetDraw);
+		infosets.add(infosetDont);
+
+		ActionDraw[] strategy = new ActionDraw[] {new ActionDraw(true, 0.0, infosetDraw + "_y"), new ActionDraw(false, 0.0, infosetDont + "_n")};
 		getProbabilities(strategy);			
 		return strategy;
 	}
@@ -86,17 +99,35 @@ public class StrategyDrawCFR extends StrategyDraw {
 		StringBuffer sb = new StringBuffer();
 		
 		sb.append(getName() + "\nDrawing Percent as a function of DeadWood Improvement\n");
-		sb.append("draw\tdon't\n");
-		for (int d = 0; d <= 9; d++) {
-			String key_k = d + "_y";
-			String key_n = d + "_n";
-			sb.append(d + "\t");
+		sb.append("\tdraw\tdon't\n");
+		for(String s : infosets.descendingSet()) {
+			String key_k = s + "_y";
+			String key_n = s + "_n";
+			sb.append(s + "\t");
 			sb.append(String.format("%.3f", sumStrategy.getOrDefault(key_k,1.0) /(sumStrategy.getOrDefault(key_k,1.0)+sumStrategy.getOrDefault(key_n,1.0))));
 			sb.append("\t");
 			sb.append(String.format("%.3f", sumStrategy.getOrDefault(key_n,1.0) /(sumStrategy.getOrDefault(key_k,1.0)+sumStrategy.getOrDefault(key_n,1.0))));
 			sb.append("\n");
 		}
+
 	    return sb.toString();
 	}
 
+	@Override
+	public void toFile(String fname) throws FileNotFoundException {
+		StringBuffer sb = new StringBuffer();
+
+		for(String s : infosets.descendingSet()) {
+			String key_k = s + "_y";
+			String key_n = s + "_n";
+			sb.append("put(\"" + s + "\", ");
+			sb.append(String.format("%.3f", sumStrategy.getOrDefault(key_k,1.0) /(sumStrategy.getOrDefault(key_k,1.0)+sumStrategy.getOrDefault(key_n,1.0))));
+			sb.append(");");
+			sb.append("\n");
+		}
+
+		PrintWriter pw = new PrintWriter(fname);
+		pw.print(sb.toString());
+		pw.close();
+	}
 }

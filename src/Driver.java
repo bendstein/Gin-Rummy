@@ -6,7 +6,7 @@ public class Driver {
 	
 	public static void main(String[] args) throws FileNotFoundException, InterruptedException {
 		final int TOTAL_ROUNDS = 5;
-		final int TRAINING_GAMES_PER_ROUND = 1000;
+		final int TRAINING_GAMES_PER_ROUND = 15;
 		final int EVALUATION_GAMES_PER_ROUND = 5;
         final int CONCURRENT_THREADS = 4;
         
