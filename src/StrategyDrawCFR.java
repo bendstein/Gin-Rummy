@@ -40,7 +40,7 @@ public class StrategyDrawCFR extends StrategyDraw {
 		//Get the number of melds you can make with the face-up
 
 		//All cards which are/could be available to you
-		long available = unaccounted + state.getPlayerCards(state.getCurrentPlayer());
+		long available = unaccounted + state.getCurrentPlayerCards();
 		int face_up = MyGinRummyUtil.bitstringToIDArray(state.getFaceUpCard())[0];
 		ArrayList<Long> melds = new ArrayList<>();
 
