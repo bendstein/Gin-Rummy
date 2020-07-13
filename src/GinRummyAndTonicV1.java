@@ -4,7 +4,7 @@ import java.util.stream.Collectors;
 /**
  * Class containing the player
  */
-public class BJG5493GinRummyPlayerV2 implements GinRummyPlayer {
+public class GinRummyAndTonicV1 implements GinRummyPlayer {
 
     //<editor-fold desc="Instance Variables">
     /**
@@ -43,7 +43,7 @@ public class BJG5493GinRummyPlayerV2 implements GinRummyPlayer {
     private ArrayList<ArrayList<Card>> oppMelds;
     //</editor-fold>
 
-    public BJG5493GinRummyPlayerV2() {
+    public GinRummyAndTonicV1() {
 
         //Information set recorded including index into deck, but only considering deadwood here
         HashMap<String, Double> knockStrat = new HashMap<String, Double>() {
