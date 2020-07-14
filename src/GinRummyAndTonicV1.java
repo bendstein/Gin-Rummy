@@ -2748,6 +2748,9 @@ class MyGinRummyUtil extends GinRummyUtil {
         // if opponent has the card passed, return 1.0;
         if(contains(s.getOppHand(), c))
             return 1d;
+        // if we know all cards on the opponent hand, and card is not in hand, then prob = 0%
+        else if(bitstringToCards(s.getOppHand()).size() == 10)
+            return 0d;
         // if card is not in the game anymore, return 0
         else if(contains(s.getBuried(), c))
             return 0d;
