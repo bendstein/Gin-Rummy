@@ -2732,7 +2732,7 @@ class MyGinRummyUtil extends GinRummyUtil {
      * Gets the probability that the opponent has the card in question
      * @param c card in question
      * @param s Game State
-     * @return
+     * @return The probability (%) of the opponent having a card
      */
     static double getProbabilityThatOpponentHasUnseenCard(Card c, State s) {
         return getProbabilityThatOpponentHasUnseenCard(cardAsBitString(c), s);
@@ -2742,7 +2742,7 @@ class MyGinRummyUtil extends GinRummyUtil {
      * Gets the probability that the opponent has the card in question
      * @param c Bitstring of the card in question
      * @param s Game State
-     * @return
+     * @return The probability (%) of the opponent having a card
      */
     static double getProbabilityThatOpponentHasUnseenCard(long c, State s){
         // if opponent has the card passed, return 1.0;
@@ -2757,6 +2757,8 @@ class MyGinRummyUtil extends GinRummyUtil {
             // take out the cards that the opponent did not want
             // figure out a way to calculate possible melds with those cards
                 // see if the meld cards are still in play (unseen , opponent hand)
+
+            //
 
 
 //        if(contains(s.getUnseen(),  super.cardBi))
