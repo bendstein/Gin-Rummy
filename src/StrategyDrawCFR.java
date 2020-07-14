@@ -14,7 +14,54 @@ public class StrategyDrawCFR extends StrategyDraw {
 	}
 
 	@Override
-	public ActionDraw[] getStrategy(GameState state) {		
+	public ActionDraw[] getStrategy(GameState state) {
+		int improvement = PshUtil.getDeadwoodImprovementIfDrawFaceUpCard(state);
+		if (improvement > 0 && PshUtil.doesFaceUpCardMakeNewMeld(state)) {
+			ActionDraw[] strategy = {new ActionDraw(true, 1.0, null)};
+			return strategy;
+		}
+
+		boolean inBestMeld = false;
+		@SuppressWarnings("unchecked")
+		ArrayList<Card> cardsCopy = (ArrayList<Card>)state.getCurrentPlayerCardsAsList().clone();
+		cardsCopy.add(state.getFaceUpCardAsObject());
+		for(ArrayList<ArrayList<Card>> melds : GinRummyUtil.cardsToBestMeldSets(cardsCopy)) {
+			for(ArrayList<Card> m : melds){
+				if(m.contains(state.getFaceUpCardAsObject()))
+					inBestMeld = true;
+			}
+		}
+
+		/*
+		 * Make quickknock into a heuristic and do cfr on the turn number????????
+		 * Generalize improvement and put in ranges to decrease state space?
+		 */
+		if(PshUtil.getBestDeadwoodAfterDiscard(cardsCopy) < 10) {
+			if(52 - state.getTopCard() > 26) {
+				ActionDraw[] strategy = {new ActionDraw(true, 1.0, null)};
+				return strategy;
+			}
+			else if(52 - state.getTopCard() <= 4) {
+				ActionDraw[] strategy = {new ActionDraw(true, 1.0, null)};
+				return strategy;
+			}
+		}
+
+		String infosetDraw = improvement + "_" + state.getTopCard() + "_" + inBestMeld;
+		String infosetDont = improvement + "_" + state.getTopCard() + "_" + inBestMeld;
+
+		infosets.add(infosetDraw);
+		infosets.add(infosetDont);
+
+		ActionDraw[] strategy = new ActionDraw[] {
+				new ActionDraw(true, 0.0, infosetDraw + "_y"),
+				new ActionDraw(false, 0.0, infosetDont + "_n")
+		};
+		getProbabilities(strategy);
+		return strategy;
+	}
+
+	public ActionDraw[] getStrategy1(GameState state) {
 		int improvement = PshUtil.getDeadwoodImprovementIfDrawFaceUpCard(state);
 
 		//If the face-up card makes a new meld and improves deadwood, always draw it.
@@ -80,7 +127,7 @@ public class StrategyDrawCFR extends StrategyDraw {
 		infosets.add(infosetDont);
 
 		ActionDraw[] strategy = new ActionDraw[] {new ActionDraw(true, 0.0, infosetDraw + "_y"), new ActionDraw(false, 0.0, infosetDont + "_n")};
-		getProbabilities(strategy);			
+		getProbabilities(strategy);
 		return strategy;
 	}
 
