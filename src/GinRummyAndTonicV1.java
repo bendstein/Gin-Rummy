@@ -1738,6 +1738,16 @@ class MyGinRummyUtil extends GinRummyUtil {
     }
 
     /**
+     *
+     * @param hand
+     * @param cardBitString
+     * @return true if hand contains card
+     */
+    public static boolean contains(long hand, long cardBitString){
+        return (hand & cardBitString ) != 0;
+    }
+
+    /**
      * @param cards a hand of cards
      * @param exclude cards to exclude from the check
      * @return all cards who are in one of the melds in the best meld set for cards
