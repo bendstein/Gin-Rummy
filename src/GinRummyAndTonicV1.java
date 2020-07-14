@@ -956,48 +956,25 @@ public class GinRummyAndTonicV1 implements GinRummyPlayer {
     public boolean willDrawFaceUpCard(long hand, int card_id) {
         int improvement = MyGinRummyUtil.getImprovement(hand, card_id);
         boolean makesNewMeld = MyGinRummyUtil.makesNewMeld(hand, card_id);
-        double expectedDeadwoodForFaceDown = MyGinRummyUtil.expectedDeadwoodForNextDraw(state);
-        int numberOfMelds = state.getNumberOfPossibleMelds(card_id);
 
         if(improvement > 0 && makesNewMeld) return true;
 
-        String infoset = improvement + "_" + (int) Math.round(expectedDeadwoodForFaceDown) + "_" + numberOfMelds;
+        ArrayList<ArrayList<ArrayList<Card>>> bestMeldSets = GinRummyUtil.cardsToBestMeldSets(GinRummyUtil.bitstringToCards(hand));
+        boolean inBestMeld = false;
+        if(!bestMeldSets.isEmpty()) {
+            ArrayList<ArrayList<Card>> set = bestMeldSets.get(0);
+            for(ArrayList<Card> meld : set) {
+                if(meld.contains(Card.getCard(card_id))) {
+                    inBestMeld = true;
+                    break;
+                }
+            }
+        }
+
+        String infoset = improvement + "_" + state.getTopCard() + "_" + inBestMeld;
 
         if(random.nextDouble() < generalStrategy.getDrawAt(infoset)) return true;
         else return false;
-
-       /* *//*
-         * First: If picking up the face-up card will lower our deadwood by an amount that is at
-         * least strategy.getMinPickupDifference(), and it lowers it more than we expect the face-down card to
-         * draw it.
-         *//*
-
-        int cost = MyGinRummyUtil.getImprovement(hand, card_id);
-        if(cost >= generalStrategy.getMinPickupDifference() &&
-                cost > MyGinRummyUtil.expectedDeadwoodForNextDraw(state)) return true;
-
-        *//*
-         * If the card can't be melded within 2 draws, don't draw it.
-         *//*
-        long newCards = MyGinRummyUtil.add(hand, card_id);
-
-        if(MyGinRummyUtil.getDeadwoodPoints(Card.getCard(card_id)) > generalStrategy.getMaxIsolatedSingleDeadwood()
-                && MyGinRummyUtil.contains(MyGinRummyUtil.getIsolatedSingles(newCards, 0L, state), card_id)) return false;
-        else if(MyGinRummyUtil.getDeadwoodPoints(Card.getCard(card_id)) > generalStrategy.getMaxSingleDeadwood()
-                && MyGinRummyUtil.contains(MyGinRummyUtil.getSingles(newCards, 0L, state), card_id)) return false;
-
-        *//*
-         * Next: If the card doesn't increase deadwood too much, and the opponent could meld it, draw the face-up.
-         *//*
-        if(cost >= generalStrategy.getMaxSingleDeadwood() && MyGinRummyUtil.canOpponentMeld(Card.getCard(card_id), state)) return true;
-
-
-        *//*
-         * Then, look at all within 2 of the highest discards. If the list doesn't contain the face-up, pick it up. Otherwise, don't.
-         *//*
-        long preferred = MyGinRummyUtil.findHighestDiscards(newCards, -1, -1, 1);
-
-        return !MyGinRummyUtil.contains(preferred, card_id);*/
 
     }
 
@@ -1156,6 +1133,8 @@ public class GinRummyAndTonicV1 implements GinRummyPlayer {
          *              What's the probability that the opp has a given unseen card?
          *          -Runs have more potential locations for layoff than 3 or 4 of a kind.
          *          -Laying off a low-value card is less important than a high-value one. May not be significant.
+         *  -Add condition to method below
+         *  -Determine whether layoff is possible based off of discards
          */
         bestMeldSets = MyGinRummyUtil.cardsToBestMeldSets(MyGinRummyUtil.bitstringToCards(state.getHand()));
         deadwood = bestMeldSets.isEmpty() ?
@@ -1172,6 +1151,8 @@ public class GinRummyAndTonicV1 implements GinRummyPlayer {
             return null;
         else if (!opponentKnocked) {
             if(deadwood == 0) return bestMeldSets.get(random.nextInt(bestMeldSets.size()));
+
+
 
             String k = deadwood + "_" + state.getTopCard();
             double prob = generalStrategy.getKnockAt(k);
@@ -1242,6 +1223,83 @@ public class GinRummyAndTonicV1 implements GinRummyPlayer {
             return bestMeldSet;
 
         }
+
+    }
+
+    private ArrayList<ArrayList<Card>> chooseMeldSet() {
+        ArrayList<ArrayList<ArrayList<Card>>> bestMeldSets = GinRummyUtil.cardsToBestMeldSets(GinRummyUtil.bitstringToCards(state.getOppHand()));
+
+        if(bestMeldSets.size() == 1) return bestMeldSets.get(0);
+
+        int maxmindeadwood = MyGinRummyUtil.getDeadwoodPoints(bestMeldSets.get(0), MyGinRummyUtil.bitstringToCards(state.getOppHand()));
+        ArrayList<ArrayList<Card>> maxMeldSet = bestMeldSets.get(0);
+        for(ArrayList<ArrayList<Card>> bestMeldSet : bestMeldSets) {
+            int deadwood = MyGinRummyUtil.getDeadwoodPoints(bestMeldSet, MyGinRummyUtil.bitstringToCards(state.getOppHand()));
+            ArrayList<Card> layoff = new ArrayList<>();
+
+            if(bestMeldSets.isEmpty()) return new ArrayList<>();
+
+            //Add all cards to layoff who could be inserted into opponent hand
+            for(ArrayList<Card> meld : oppMelds) {
+                //Meld of cards of same rank
+                if(meld.get(0).getRank() == meld.get(1).getRank()) {
+                    layoff.addAll(MyGinRummyUtil.getSameRank(MyGinRummyUtil.bitstringToCards(state.getOppHand()), meld.get(0)));
+                }
+
+                //Cards of same suit
+                else {
+                    layoff.addAll(MyGinRummyUtil.getSameSuit(MyGinRummyUtil.bitstringToCards(state.getOppHand()), meld.get(0), 1));
+                    layoff.addAll(MyGinRummyUtil.getSameSuit(MyGinRummyUtil.bitstringToCards(state.getOppHand()), meld.get(meld.size() - 1), 1));
+                }
+            }
+
+            /*
+             * Deadwood cards will be laid off no matter what, so check potential layoffs in melds to see if
+             * a better config is available.
+             */
+
+            ArrayList<Card> temp;
+            int minDeadwood = deadwood;
+
+            if(layoff.isEmpty()) return bestMeldSet;
+
+            //Go through EVERY permutation of potential layoffs to find the one that leaves the best deadwood
+            for(int i = 0; i < Math.pow(2, layoff.size()); i++) {
+                String bString = Integer.toBinaryString(i);
+                temp = MyGinRummyUtil.bitstringToCards(state.getOppHand());
+
+                for(int j = 0; j < bString.length(); j++) {
+                    if(bString.charAt(bString.length() - 1 - j) == '1') {
+                        temp.remove(layoff.get(j));
+                    }
+                }
+
+                ArrayList<ArrayList<ArrayList<Card>>> meldSets = MyGinRummyUtil.cardsToBestMeldSets(temp);
+
+                if(meldSets.isEmpty()) {
+                    if(MyGinRummyUtil.getDeadwoodPoints(temp) < minDeadwood) {
+                        minDeadwood = MyGinRummyUtil.getDeadwoodPoints(temp);
+                        bestMeldSet = new ArrayList<>();
+                    }
+                }
+
+                else {
+                    if(MyGinRummyUtil.getDeadwoodPoints(meldSets.get(0), temp) < minDeadwood) {
+                        minDeadwood = MyGinRummyUtil.getDeadwoodPoints(meldSets.get(0), temp);
+                        bestMeldSet = meldSets.get(0);
+                    }
+                }
+            }
+
+            if(minDeadwood > maxmindeadwood) {
+                maxmindeadwood = minDeadwood;
+                maxMeldSet = bestMeldSet;
+            }
+
+        }
+
+
+        return maxMeldSet;
 
     }
 
