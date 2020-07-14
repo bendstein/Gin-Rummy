@@ -2727,6 +2727,52 @@ class MyGinRummyUtil extends GinRummyUtil {
 
         return strategy;
     }
+
+    /**
+     * Gets the probability that the opponent has the card in question
+     * @param c card in question
+     * @param s Game State
+     * @return
+     */
+    static double getProbabilityThatOpponentHasUnseenCard(Card c, State s) {
+        return getProbabilityThatOpponentHasUnseenCard(cardAsBitString(c), s);
+    }
+
+    /**
+     * Gets the probability that the opponent has the card in question
+     * @param c Bitstring of the card in question
+     * @param s Game State
+     * @return
+     */
+    static double getProbabilityThatOpponentHasUnseenCard(long c, State s){
+        // if opponent has the card passed, return 1.0;
+        if(contains(s.getOppHand(), c))
+            return 1d;
+        // if card is not in the game anymore, return 0
+        else if(contains(s.getBuried(), c))
+            return 0d;
+
+        // Get how many cards are unknown
+            // Unseen cards
+            // take out the cards that the opponent did not want
+            // figure out a way to calculate possible melds with those cards
+                // see if the meld cards are still in play (unseen , opponent hand)
+
+
+//        if(contains(s.getUnseen(),  super.cardBi))
+
+        return 0.5d;
+    }
+
+    /**
+     * Return a bitstring representation of this card
+
+     * @param card the card
+     * @return a bitstring with the 1 set in bit position equal the card's id
+     */
+    public static long cardAsBitString(Card card) {
+        return 1L << card.getId();
+    }
 }
 
 /**
