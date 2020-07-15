@@ -2866,18 +2866,28 @@ class MyGinRummyUtil extends GinRummyUtil {
         else if (bitstringToCards(s.getOppHand()).size() == 10)
             return 0d;
 
-        // Get how many cards are unknown
-        // Unseen cards
-        // take out the cards that the opponent did not want
+        // at this point, we know the card in question is unseen
+
+        // card in question
+        Card card = bitstringToCards(c).get(0);
+
+        // can the opponent make a meld out of this card?
+        int opponentPossibleMelds = s.getPotentialOpponentMelds(card.getId()).size();
+
+        // if opponent can meld, then it means that there's a
+        // chance that the opponent has this card
+        if(opponentPossibleMelds > 0){
+            // nominator adding decimal of how many possible melds can the opponent make
+            double nominator = 1 + (opponentPossibleMelds / 10);
+            return nominator / bitstringToCards(s.getUnseen()).size();
+        }
+
+
         // figure out a way to calculate possible melds with those cards
         // see if the meld cards are still in play (unseen , opponent hand)
 
-        //
-
-        // if(contains(s.getUnseen(), super.cardBi))
-
-        // 50/50 chance if everything fails
-        return 0.5d;
+        // 1/ unseen cards : chance if everything fails
+        return 1d / bitstringToCards(s.getUnseen()).size();
     }
 
     /**
