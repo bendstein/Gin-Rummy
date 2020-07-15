@@ -322,7 +322,7 @@ public class GinRummyGame {
 		// Multiple non-verbose games
 
 		setPlayVerbose(false);
-		int numGames = 500;
+		int numGames = 750;
 		p1 = new GinRummyAndTonicV1();
 		//p0 = new BJG5493GinRummyPlayerV0();
 		//p0 = new BJG5493GinRummyPlayerV1();

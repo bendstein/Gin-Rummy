@@ -954,31 +954,14 @@ public class BJG5493GinRummyPlayerV2 implements GinRummyPlayer {
      * @return true if we would pick up card_id with the given hand
      */
     public boolean willDrawFaceUpCard(long hand, int card_id) {
-        int improvement = MyGinRummyUtil.getImprovement(hand, card_id);
-        boolean makesNewMeld = MyGinRummyUtil.makesNewMeld(hand, card_id);
-        double expectedDeadwoodForFaceDown = MyGinRummyUtil.expectedDeadwoodForNextDraw(state);
-        int numberOfMelds = state.getNumberOfPossibleMelds(card_id);
-
-        if(improvement > 0 && makesNewMeld) return true;
-
-        String infoset = improvement + "_" + (int) Math.round(expectedDeadwoodForFaceDown) + "_" + numberOfMelds;
-
-        if(random.nextDouble() < generalStrategy.getDrawAt(infoset)) return true;
-        else return false;
-
-       /* *//*
-         * First: If picking up the face-up card will lower our deadwood by an amount that is at
-         * least strategy.getMinPickupDifference(), and it lowers it more than we expect the face-down card to
-         * draw it.
-         *//*
 
         int cost = MyGinRummyUtil.getImprovement(hand, card_id);
         if(cost >= generalStrategy.getMinPickupDifference() &&
                 cost > MyGinRummyUtil.expectedDeadwoodForNextDraw(state)) return true;
 
-        *//*
-         * If the card can't be melded within 2 draws, don't draw it.
-         *//*
+
+        //If the card can't be melded within 2 draws, don't draw it.
+
         long newCards = MyGinRummyUtil.add(hand, card_id);
 
         if(MyGinRummyUtil.getDeadwoodPoints(Card.getCard(card_id)) > generalStrategy.getMaxIsolatedSingleDeadwood()
@@ -986,18 +969,13 @@ public class BJG5493GinRummyPlayerV2 implements GinRummyPlayer {
         else if(MyGinRummyUtil.getDeadwoodPoints(Card.getCard(card_id)) > generalStrategy.getMaxSingleDeadwood()
                 && MyGinRummyUtil.contains(MyGinRummyUtil.getSingles(newCards, 0L, state), card_id)) return false;
 
-        *//*
-         * Next: If the card doesn't increase deadwood too much, and the opponent could meld it, draw the face-up.
-         *//*
+        //Next: If the card doesn't increase deadwood too much, and the opponent could meld it, draw the face-up.
         if(cost >= generalStrategy.getMaxSingleDeadwood() && MyGinRummyUtil.canOpponentMeld(Card.getCard(card_id), state)) return true;
 
-
-        *//*
-         * Then, look at all within 2 of the highest discards. If the list doesn't contain the face-up, pick it up. Otherwise, don't.
-         *//*
+        //Then, look at all within 2 of the highest discards. If the list doesn't contain the face-up, pick it up. Otherwise, don't.
         long preferred = MyGinRummyUtil.findHighestDiscards(newCards, -1, -1, 1);
 
-        return !MyGinRummyUtil.contains(preferred, card_id);*/
+        return !MyGinRummyUtil.contains(preferred, card_id);
 
     }
 

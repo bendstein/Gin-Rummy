@@ -1155,16 +1155,6 @@ public class GinRummyAndTonicV1 implements GinRummyPlayer {
         ArrayList<ArrayList<ArrayList<Card>>> bestMeldSets;
         int deadwood;
 
-        /*
-         * TODO:
-         *  -Try to find the best melds to minimize opponent layoff. Make sure to balance with deadwood to prevent undercut.
-         *          -Based off of what we know is in their hand, and what cards we haven't seen. Account for # of remaining cards.
-         *              What's the probability that the opp has a given unseen card?
-         *          -Runs have more potential locations for layoff than 3 or 4 of a kind.
-         *          -Laying off a low-value card is less important than a high-value one. May not be significant.
-         *  -Add condition to method below
-         *  -Determine whether layoff is possible based off of discards
-         */
         bestMeldSets = MyGinRummyUtil.cardsToBestMeldSets(MyGinRummyUtil.bitstringToCards(state.getHand()));
         deadwood = bestMeldSets.isEmpty()
                 ? MyGinRummyUtil.getDeadwoodPoints(MyGinRummyUtil.bitstringToCards(state.getHand()))
@@ -1173,19 +1163,64 @@ public class GinRummyAndTonicV1 implements GinRummyPlayer {
 
         // Check if deadwood of maximal meld is low enough to go out.
 
-        // Only knock if deadwood is both less than or equal to 10 and
-        // strategy.getMaxKnockDeadwood() [0].
-
         if (!opponentKnocked && (bestMeldSets.isEmpty() || deadwood > MyGinRummyUtil.MAX_DEADWOOD))
             return null;
         else if (!opponentKnocked) {
-            if (deadwood == 0)
-                return bestMeldSets.get(random.nextInt(bestMeldSets.size()));
 
             String k = deadwood + "_" + state.getTopCard();
-            double prob = generalStrategy.getKnockAt(k);
-            if (random.nextDouble() < prob)
-                return bestMeldSets.get(random.nextInt(bestMeldSets.size()));
+
+            //If we have gin, or if we get a random value less than our probability to knock at infoset k, knock.
+            if (deadwood == 0 || random.nextDouble() < generalStrategy.getKnockAt(k)) {
+
+                //Select the meld configuration to submit.
+                ArrayList<ArrayList<Card>> bestMeldSet = null;
+                 double minExpectedLayoff = Double.MAX_VALUE;
+                 for(ArrayList<ArrayList<Card>> meldSet : bestMeldSets) {
+                     ArrayList<Card> layoff = new ArrayList<>();
+
+                     // Add all cards to layoff who could be inserted into our hand
+                     for (ArrayList<Card> meld : meldSet) {
+                         // Meld of cards of same rank
+                         if (meld.get(0).getRank() == meld.get(1).getRank()) {
+                             layoff.addAll(
+                                     MyGinRummyUtil.getSameRank(MyGinRummyUtil.bitstringToCards(
+                                             MyGinRummyUtil.addAll(state.getOppHand(), state.getUnaccounted())), meld.get(0)));
+                         }
+
+                         // Cards of same suit
+                         else {
+                             layoff.addAll(MyGinRummyUtil.getSameSuit(MyGinRummyUtil.bitstringToCards(
+                                     MyGinRummyUtil.addAll(state.getOppHand(), state.getUnaccounted())),
+                                     meld.get(0), 1));
+                             layoff.addAll(MyGinRummyUtil.getSameSuit(MyGinRummyUtil.bitstringToCards(
+                                     MyGinRummyUtil.addAll(state.getOppHand(), state.getUnaccounted())),
+                                     meld.get(meld.size() - 1), 1));
+                         }
+                     }
+
+                     /*
+                      * The sum of the deadwood of each layoff card * the probability that the opponent has said card
+                      * is expectedLayoff. If expectedLayoff < minExpectedLayoff, it is the new minimum, so assign
+                      * bestMeldSet to the current meld set. In the end, return the meld set with the lowest expectedLayoff.
+                      */
+                     double expectedLayoff = 0d;
+                     for(Card card : layoff) {
+                         //If the card is in an opponent meld, we don't expect them to try to lay it off.
+                         if(MyGinRummyUtil.canOpponentMeld(card, state)) continue;
+                         expectedLayoff += GinRummyUtil.getDeadwoodPoints(card) *
+                                 MyGinRummyUtil.getProbabilityThatOpponentHasUnseenCard(card, state);
+                     }
+
+                     if(expectedLayoff < minExpectedLayoff) {
+                         minExpectedLayoff = expectedLayoff;
+                         bestMeldSet = meldSet;
+                     }
+
+                 }
+
+                 return bestMeldSet;
+
+            }
             else
                 return null;
         }
@@ -1257,92 +1292,6 @@ public class GinRummyAndTonicV1 implements GinRummyPlayer {
             return bestMeldSet;
 
         }
-
-    }
-
-    private ArrayList<ArrayList<Card>> chooseMeldSet() {
-        ArrayList<ArrayList<ArrayList<Card>>> bestMeldSets = GinRummyUtil
-                .cardsToBestMeldSets(GinRummyUtil.bitstringToCards(state.getOppHand()));
-
-        if (bestMeldSets.size() == 1)
-            return bestMeldSets.get(0);
-
-        int maxmindeadwood = MyGinRummyUtil.getDeadwoodPoints(bestMeldSets.get(0),
-                MyGinRummyUtil.bitstringToCards(state.getOppHand()));
-        ArrayList<ArrayList<Card>> maxMeldSet = bestMeldSets.get(0);
-        for (ArrayList<ArrayList<Card>> bestMeldSet : bestMeldSets) {
-            int deadwood = MyGinRummyUtil.getDeadwoodPoints(bestMeldSet,
-                    MyGinRummyUtil.bitstringToCards(state.getOppHand()));
-            ArrayList<Card> layoff = new ArrayList<>();
-
-            if (bestMeldSets.isEmpty())
-                return new ArrayList<>();
-
-            // Add all cards to layoff who could be inserted into opponent hand
-            for (ArrayList<Card> meld : oppMelds) {
-                // Meld of cards of same rank
-                if (meld.get(0).getRank() == meld.get(1).getRank()) {
-                    layoff.addAll(MyGinRummyUtil.getSameRank(MyGinRummyUtil.bitstringToCards(state.getOppHand()),
-                            meld.get(0)));
-                }
-
-                // Cards of same suit
-                else {
-                    layoff.addAll(MyGinRummyUtil.getSameSuit(MyGinRummyUtil.bitstringToCards(state.getOppHand()),
-                            meld.get(0), 1));
-                    layoff.addAll(MyGinRummyUtil.getSameSuit(MyGinRummyUtil.bitstringToCards(state.getOppHand()),
-                            meld.get(meld.size() - 1), 1));
-                }
-            }
-
-            /*
-             * Deadwood cards will be laid off no matter what, so check potential layoffs in
-             * melds to see if a better config is available.
-             */
-
-            ArrayList<Card> temp;
-            int minDeadwood = deadwood;
-
-            if (layoff.isEmpty())
-                return bestMeldSet;
-
-            // Go through EVERY permutation of potential layoffs to find the one that leaves
-            // the best deadwood
-            for (int i = 0; i < Math.pow(2, layoff.size()); i++) {
-                String bString = Integer.toBinaryString(i);
-                temp = MyGinRummyUtil.bitstringToCards(state.getOppHand());
-
-                for (int j = 0; j < bString.length(); j++) {
-                    if (bString.charAt(bString.length() - 1 - j) == '1') {
-                        temp.remove(layoff.get(j));
-                    }
-                }
-
-                ArrayList<ArrayList<ArrayList<Card>>> meldSets = MyGinRummyUtil.cardsToBestMeldSets(temp);
-
-                if (meldSets.isEmpty()) {
-                    if (MyGinRummyUtil.getDeadwoodPoints(temp) < minDeadwood) {
-                        minDeadwood = MyGinRummyUtil.getDeadwoodPoints(temp);
-                        bestMeldSet = new ArrayList<>();
-                    }
-                }
-
-                else {
-                    if (MyGinRummyUtil.getDeadwoodPoints(meldSets.get(0), temp) < minDeadwood) {
-                        minDeadwood = MyGinRummyUtil.getDeadwoodPoints(meldSets.get(0), temp);
-                        bestMeldSet = meldSets.get(0);
-                    }
-                }
-            }
-
-            if (minDeadwood > maxmindeadwood) {
-                maxmindeadwood = minDeadwood;
-                maxMeldSet = bestMeldSet;
-            }
-
-        }
-
-        return maxMeldSet;
 
     }
 
@@ -1552,7 +1501,7 @@ class State {
 
     /**
      * @param id The id of the card
-     * @return All melds of 3 which the opponent could make with id
+     * @return All melds which the opponent could make with id
      */
     public ArrayList<Long> getPotentialOpponentMelds(int id) {
 
@@ -1561,34 +1510,65 @@ class State {
         ArrayList<Long> melds = new ArrayList<>();
 
         // All available cards of the same rank as id
-        long sameRank = MyGinRummyUtil.getSameRank(available, id);
+        long sameRank = MyGinRummyUtil.add(MyGinRummyUtil.getSameRank(available, id), id);
         int[] sameRankIds = MyGinRummyUtil.bitstringToIDArray(sameRank);
+
+        if(MyGinRummyUtil.size(sameRank) >= 3) melds.add(sameRank);
 
         // Add all potential same-rank melds to the list
         for (int i : sameRankIds) {
             for (int j : sameRankIds) {
                 if (i != j) {
                     long meld = MyGinRummyUtil.idsToBitstring(new int[] { i, j, id });
+                    ArrayList<Card> md = GinRummyUtil.bitstringToCards(meld);
                     if (!melds.contains(meld))
                         melds.add(meld);
                 }
             }
         }
 
-        // All available adjacent cards to id of the same suit
-        long sameSuit = MyGinRummyUtil.getSameSuit(available, id, 1);
-        int[] sameSuitIds = MyGinRummyUtil.bitstringToIDArray(sameSuit);
 
-        // Add all potential same-suit melds to the list
-        if (sameSuitIds.length == 2)
-            melds.add(MyGinRummyUtil.add(MyGinRummyUtil.idsToBitstring(sameSuitIds), id));
+        ArrayDeque<Integer> toCheck = new ArrayDeque<>();
+        HashSet<Integer> checked = new HashSet<>();
+        toCheck.add(id);
+        ArrayList<Integer> run = new ArrayList<>();
 
-        for (int i : sameSuitIds) {
-            long adj = MyGinRummyUtil.getSameSuit(available, i, 1);
-            int[] adjIds = MyGinRummyUtil.bitstringToIDArray(adj);
-            if (adjIds.length == 2)
-                melds.add(MyGinRummyUtil.add(MyGinRummyUtil.idsToBitstring(sameSuitIds), i));
+        while(!toCheck.isEmpty()) {
+            //Dequeue a card, and add it to the run
+            int cardId = toCheck.removeFirst();
+            checked.add(cardId);
+            run.add(cardId);
+
+            //Get all available adjacent cards to cardId of the same suit
+            long sameSuit = MyGinRummyUtil.getSameSuit(available, cardId, 1);
+            ArrayList<Card> ss = MyGinRummyUtil.bitstringToCards(sameSuit);
+            int[] sameSuitIds = MyGinRummyUtil.bitstringToIDArray(sameSuit);
+
+            //Enqueue them
+            for(int i : sameSuitIds) {
+                if(!toCheck.contains(i) && !checked.contains(i)) toCheck.add(i);
+            }
+
+            /*
+            // Add all potential same-suit melds to the list
+            if (sameSuitIds.length == 2)
+                melds.add(MyGinRummyUtil.add(MyGinRummyUtil.idsToBitstring(sameSuitIds), id));
+
+            for (int i : sameSuitIds) {
+                long adj = MyGinRummyUtil.getSameSuit(available, i, 1);
+                int[] adjIds = MyGinRummyUtil.bitstringToIDArray(adj);
+                if (adjIds.length == 2)
+                    melds.add(MyGinRummyUtil.add(MyGinRummyUtil.idsToBitstring(sameSuitIds), i));
+            }
+
+             */
         }
+
+        if(run.size() >= 3) melds.add(MyGinRummyUtil.idsToBitstring(run));
+
+        ArrayList<ArrayList<Card>> mel = new ArrayList<>();
+        for(long ec : melds)
+            mel.add(MyGinRummyUtil.bitstringToCards(ec));
 
         return melds;
     }
@@ -2932,19 +2912,28 @@ class MyGinRummyUtil extends GinRummyUtil {
         // can the opponent make a meld out of this card?
         int opponentPossibleMelds = s.getPotentialOpponentMelds(card.getId()).size();
 
+        int sizeOfUnseenOppHand = 10 - MyGinRummyUtil.size(s.getOppHand());
+        int sizeOfUnseen = MyGinRummyUtil.size(s.getUnaccounted());
+
+        double unweightedProbabilityInOppHand = sizeOfUnseenOppHand/(double)sizeOfUnseen;
+
         // if opponent can meld, then it means that there's a
         // chance that the opponent has this card
         if (opponentPossibleMelds > 0) {
             // nominator adding decimal of how many possible melds can the opponent make
-            double nominator = 1 + (opponentPossibleMelds / 10);
-            return nominator / bitstringToCards(s.getUnseen()).size();
+            double nominator = 1 + (opponentPossibleMelds / 10d);
+            return nominator / sizeOfUnseen;
         }
+
 
         // figure out a way to calculate possible melds with those cards
         // see if the meld cards are still in play (unseen , opponent hand)
 
         // 1/ unseen cards : chance if everything fails
-        return 1d / bitstringToCards(s.getUnseen()).size();
+        //return 1d / bitstringToCards(s.getUnseen()).size();
+
+        //return (number of unseen cards in opponent's hand)/(number of unseen cards) if all else fails
+        return unweightedProbabilityInOppHand;
     }
 
     /**
