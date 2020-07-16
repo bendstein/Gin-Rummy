@@ -326,8 +326,8 @@ public class GinRummyGame {
 		p1 = new GinRummyAndTonicV1();
 		//p0 = new BJG5493GinRummyPlayerV0();
 		//p0 = new BJG5493GinRummyPlayerV1();
+		//p0 = new BJG5493GinRummyPlayerV2();
 		//p0 = new SimpleGinRummyPlayer();
-		//p0 = new GinRummyAndTonicV1();
 		p0 = new PSHPlayerBasePlayer();
 
 		int numP1Wins = 0;
