@@ -313,7 +313,7 @@ public class GinRummyGame {
 		setPlayVerbose(true);
 
 		p0 = new InputPlayer();
-		p1 = new GinRummyAndTonicV1();
+		p1 = new GinRummyAndTonic_v2();
 		new GinRummyGame(p1, p0).play();
 
 		 */
@@ -323,7 +323,7 @@ public class GinRummyGame {
 
 		setPlayVerbose(false);
 		int numGames = 750;
-		p1 = new GinRummyAndTonicV1();
+		p1 = new GinRummyAndTonic_v2();
 		//p0 = new BJG5493GinRummyPlayerV0();
 		//p0 = new BJG5493GinRummyPlayerV1();
 		//p0 = new BJG5493GinRummyPlayerV2();

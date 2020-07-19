@@ -4,7 +4,7 @@ import java.util.stream.Collectors;
 /**
  * Class containing the player
  */
-public class GinRummyAndTonicV1 implements GinRummyPlayer {
+public class GinRummyAndTonic_v2 implements GinRummyPlayer {
 
     // <editor-fold desc="Instance Variables">
     /**
@@ -43,7 +43,7 @@ public class GinRummyAndTonicV1 implements GinRummyPlayer {
     private ArrayList<ArrayList<Card>> oppMelds;
     // </editor-fold>
 
-    public GinRummyAndTonicV1() {
+    public GinRummyAndTonic_v2() {
 
         // Information set recorded including index into deck, but only considering
         // deadwood here
@@ -681,6 +681,11 @@ public class GinRummyAndTonicV1 implements GinRummyPlayer {
 
     @Override
     public ArrayList<ArrayList<Card>> getFinalMelds() {
+
+        /*
+         * TODO: Consider the deadwood of opponent discards in figuring out whether they're preparing to knock or not.
+         *  If they are consistently tossing low deadwood cards, they could be preparing to knock. Maybe.
+         */
 
         ArrayList<ArrayList<ArrayList<Card>>> bestMeldSets;
         int deadwood;
@@ -1437,6 +1442,44 @@ class MyGinRummyUtil extends GinRummyUtil {
 
     }
 
+    public static ArrayList<Card> getSingles(ArrayList<Card> cards, ArrayList<Card> exclude, ArrayList<Card> unaccounted) {
+
+        ArrayList<Card> temp = new ArrayList<>(cards);
+        if (exclude != null)
+            temp.removeAll(exclude);
+        if (temp.isEmpty())
+            return temp;
+
+        ArrayList<Card> singles = getUnmelded(temp, exclude);
+        ArrayList<Card> toRemove = new ArrayList<>();
+
+        for (Card card : singles) {
+
+            // If there exists another card of the same rank in the hand and unseen, it can
+            // be melded within 1 draw
+            if (containsRank(temp, card) && containsRank(cardsToBitstring(unaccounted), card.getId())) {
+                toRemove.add(card);
+                continue;
+            }
+
+            /*
+             * For each adjacent card of the same suit to c, if there is an adjacent card of
+             * the same suit to that card which is unseen, it can be melded within 1 draw
+             */
+
+            for (Card c : getSameSuit(temp, card, 1)) {
+                if (containsSuit(cardsToBitstring(unaccounted), card.getId(), 1)) {
+                    toRemove.add(card);
+                    break;
+                }
+            }
+        }
+
+        singles.removeAll(toRemove);
+        return singles;
+
+    }
+
     /**
      * @param cards   a hand of cards
      * @param state   the current state of the game
@@ -1446,6 +1489,10 @@ class MyGinRummyUtil extends GinRummyUtil {
      */
     public static long getSingles(long cards, long exclude, State state) {
         return cardsToBitstring(getSingles(bitstringToCards(cards), bitstringToCards(exclude), state));
+    }
+
+    public static long getSingles(long cards, long exclude, long unaccounted) {
+        return cardsToBitstring(getSingles(bitstringToCards(cards), bitstringToCards(exclude), bitstringToCards(unaccounted)));
     }
 
     /**
@@ -1460,7 +1507,7 @@ class MyGinRummyUtil extends GinRummyUtil {
                                                                      // drawing one card
         ArrayList<Card> unaccounted = bitstringToCards(state.getUnaccounted()); // All cards which have not yet been
                                                                                 // seen
-        unaccounted.removeAll(bitstringToCards(state.getSeen()));
+        //unaccounted.removeAll(bitstringToCards(state.getSeen()));
 
         ArrayList<Card> toRemove = new ArrayList<>();
 
@@ -1508,6 +1555,58 @@ class MyGinRummyUtil extends GinRummyUtil {
 
     }
 
+    public static ArrayList<Card> getIsolatedSingles(ArrayList<Card> cards, ArrayList<Card> exclude, ArrayList<Card> unaccounted) {
+        ArrayList<Card> singles = getSingles(cards, exclude, unaccounted); // All cards which cannot be made into a meld after
+        // drawing one card
+        // seen
+        //unaccounted.removeAll(bitstringToCards(state.getSeen()));
+
+        ArrayList<Card> toRemove = new ArrayList<>();
+
+        for (Card card : singles) {
+
+            // Get all cards of the same rank as the card
+            ArrayList<Card> adjacent = new ArrayList<>(getSameRank(unaccounted, card));
+
+            // If at least 2 unseen cards of the same rank as card, it can be melded after
+            // drawing 2 cards
+            if (adjacent.size() > 1) {
+                toRemove.add(card);
+                break;
+            }
+
+            // All cards of the same suit as the card whose rank is within 1 (should only be
+            // 2 cards max)
+            adjacent = new ArrayList<>(getSameSuit(unaccounted, card, 1));
+
+            // If no adjacent cards, then it cannot be melded even after drawing 2 cards.
+            // Check next card.
+            if (adjacent.isEmpty())
+                continue;
+
+            // For each adjacent card, see if the next card also exists. If any do, then the
+            // card can be melded after drawing 2 cards.
+            for (Card c : adjacent) {
+                ArrayList<Card> c_adjacent = new ArrayList<>(getSameSuit(unaccounted, c, 1)); // Unaccounted cards
+                // adjacent to c. Should
+                // never contain card, so
+                // should contain 1 card
+                // max.
+                if (!c_adjacent.isEmpty()) {
+                    toRemove.add(card);
+                    break;
+                }
+
+            }
+
+        }
+
+        singles.removeAll(toRemove);
+
+        return singles;
+
+    }
+
     /**
      * @param cards   a hand of cards
      * @param exclude cards to exclude from the check
@@ -1517,6 +1616,10 @@ class MyGinRummyUtil extends GinRummyUtil {
      */
     public static long getIsolatedSingles(long cards, long exclude, State state) {
         return cardsToBitstring(getIsolatedSingles(bitstringToCards(cards), bitstringToCards(exclude), state));
+    }
+
+    public static long getIsolatedSingles(long cards, long exclude, long unaccounted) {
+        return cardsToBitstring(getIsolatedSingles(bitstringToCards(cards), bitstringToCards(exclude), bitstringToCards(unaccounted)));
     }
 
     /**
@@ -1644,6 +1747,45 @@ class MyGinRummyUtil extends GinRummyUtil {
         sameRank.removeIf(card -> !contains(s.getHand(), card.getId()) && !contains(s.getBuried(), card.getId()));
         sameSuitAdj.removeIf(card -> !contains(s.getHand(), card.getId()) && !contains(s.getBuried(), card.getId()));
         sameSuit.removeIf(card -> !contains(s.getHand(), card.getId()) && !contains(s.getBuried(), card.getId()));
+
+        if (sameRank.size() >= 2)
+            return true;
+
+        else if (sameSuitAdj.isEmpty() || sameSuit.isEmpty())
+            return false;
+
+        // Looking at all the cards which are 2 away, if there is no card between it and
+        // c, remove it
+        sameSuit.removeIf(card -> {
+            for (Card card1 : sameSuitAdj) {
+                if (card.getRank() > c.getRank())
+                    return card.getRank() - 1 != card1.getRank();
+                else
+                    return card.getRank() + 1 != card1.getRank();
+            }
+            return false;
+        });
+
+        return !sameSuit.isEmpty();
+    }
+
+    public static boolean canOpponentMeld(Card c, long oppHand, long buried) {
+
+        // Cards of same rank as c
+        ArrayList<Card> sameRank = getSameRank(new ArrayList<>(Arrays.asList(Card.allCards)), c);
+
+        // Cards of same suit as c which are adjacent
+        ArrayList<Card> sameSuitAdj = getSameSuit(new ArrayList<>(Arrays.asList(Card.allCards)), c, 1);
+
+        // Cards of same suit as c who's rank is 2 away
+        ArrayList<Card> sameSuit = getSameSuit(new ArrayList<>(Arrays.asList(Card.allCards)), c, 2);
+        sameSuit.removeAll(sameSuitAdj);
+
+        // Filter cards from collections so they only contain cards in the deck or in
+        // the opponent's hand
+        sameRank.removeIf(card -> !contains(oppHand, card.getId()) && !contains(buried, card.getId()));
+        sameSuitAdj.removeIf(card -> !contains(oppHand, card.getId()) && !contains(buried, card.getId()));
+        sameSuit.removeIf(card -> !contains(oppHand, card.getId()) && !contains(buried, card.getId()));
 
         if (sameRank.size() >= 2)
             return true;

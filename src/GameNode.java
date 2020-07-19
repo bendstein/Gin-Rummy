@@ -8,7 +8,7 @@ public class GameNode {
 	public static double EPSILON = 0.6; // the proportion of time that we sample uniformly from all actions
 										// when sampling regret
 
-	public static double MAX_TURNS = 10; // To speed training, we limit the game to 10 turns each
+	public static double MAX_TURNS = 40; // To speed training, we limit the game to 10 turns each
 	
 	public static class UtilityProbability {
 		double scaledUtility;  // [the utility at the sampled terminal node]/[probability we play to this node]
@@ -51,7 +51,7 @@ public class GameNode {
 		
 
         // Limit to 10 turns each
-        if (state.getDecisionPoint() / 6 >= 10) {
+        if (state.getDecisionPoint() / 6 >= MAX_TURNS) {
                 if (DEBUG)
                         System.out.println("The draw pile was reduced to two cards without knocking, so the hand is cancelled.");
                 int player = state.getCurrentPlayer();

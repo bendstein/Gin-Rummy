@@ -21,6 +21,9 @@ public class StrategyDrawCFR extends StrategyDraw {
 			return strategy;
 		}
 
+		/*
+		 * Move inBestMeld out of CFR, make it into a heuristic
+		 */
 		boolean inBestMeld = false;
 		@SuppressWarnings("unchecked")
 		ArrayList<Card> cardsCopy = (ArrayList<Card>)state.getCurrentPlayerCardsAsList().clone();
@@ -32,6 +35,9 @@ public class StrategyDrawCFR extends StrategyDraw {
 			}
 		}
 
+		/*
+		 * Top Card isn't reliable. Make it so driver doesn't end early?????????
+		 */
 		/*
 		 * Make quickknock into a heuristic and do cfr on the turn number????????
 		 * Generalize improvement and put in ranges to decrease state space?
@@ -47,15 +53,13 @@ public class StrategyDrawCFR extends StrategyDraw {
 			}
 		}
 
-		String infosetDraw = improvement + "_" + state.getTopCard() + "_" + inBestMeld;
-		String infosetDont = improvement + "_" + state.getTopCard() + "_" + inBestMeld;
+		String infoset = improvement + "_" + state.getTopCard() + "_" + inBestMeld;
 
-		infosets.add(infosetDraw);
-		infosets.add(infosetDont);
+		infosets.add(infoset);
 
 		ActionDraw[] strategy = new ActionDraw[] {
-				new ActionDraw(true, 0.0, infosetDraw + "_y"),
-				new ActionDraw(false, 0.0, infosetDont + "_n")
+				new ActionDraw(true, 0.0, infoset + "_y"),
+				new ActionDraw(false, 0.0, infoset + "_n")
 		};
 		getProbabilities(strategy);
 		return strategy;

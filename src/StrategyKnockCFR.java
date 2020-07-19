@@ -46,14 +46,16 @@ public class StrategyKnockCFR extends StrategyKnock {
 		else {
 			// I can knock, let's see if I should
 
-			String infosetKnock = deadwood + "_" + state.getTopCard();
-			String infosetDont = deadwood + "_" + state.getTopCard();
+			//Deadwood of the opponent's discard
+			long fup = state.getPreviousState().getFaceUpCard();
+			int faceUpDeadwood = GinRummyUtil.getDeadwoodPoints(GinRummyUtil.bitstringToCards(fup));
 
-			infosets.add(infosetKnock);
-			infosets.add(infosetDont);
+			String infoset= deadwood + "_" + state.getTopCard() + "_" + faceUpDeadwood;
 
-			strategy = new ActionKnock[] {new ActionKnock(true, 0.0,  infosetKnock + "_k"),
-					new ActionKnock(false, 0.0, infosetDont + "_n")};
+			infosets.add(infoset);
+
+			strategy = new ActionKnock[] {new ActionKnock(true, 0.0,  infoset + "_k"),
+					new ActionKnock(false, 0.0, infoset + "_n")};
 			getProbabilities(strategy);			
 		}
 		return strategy;
