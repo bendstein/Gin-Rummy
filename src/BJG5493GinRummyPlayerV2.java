@@ -964,6 +964,7 @@ public class BJG5493GinRummyPlayerV2 implements GinRummyPlayer {
 
         long newCards = MyGinRummyUtil.add(hand, card_id);
 
+
         if(MyGinRummyUtil.getDeadwoodPoints(Card.getCard(card_id)) > generalStrategy.getMaxIsolatedSingleDeadwood()
                 && MyGinRummyUtil.contains(MyGinRummyUtil.getIsolatedSingles(newCards, 0L, state), card_id)) return false;
         else if(MyGinRummyUtil.getDeadwoodPoints(Card.getCard(card_id)) > generalStrategy.getMaxSingleDeadwood()

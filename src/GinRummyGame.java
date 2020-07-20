@@ -322,13 +322,14 @@ public class GinRummyGame {
 		// Multiple non-verbose games
 
 		setPlayVerbose(false);
-		int numGames = 750;
+		int numGames = 100;
 		p1 = new GinRummyAndTonic_v2();
 		//p0 = new BJG5493GinRummyPlayerV0();
 		//p0 = new BJG5493GinRummyPlayerV1();
-		//p0 = new BJG5493GinRummyPlayerV2();
 		//p0 = new SimpleGinRummyPlayer();
-		p0 = new PSHPlayerBasePlayer();
+		//p0 = new PSHPlayerBasePlayer();
+		//p0 = new BJG5493GinRummyPlayerV2();
+		p0 = new Agent01();
 
 		int numP1Wins = 0;
 		GinRummyGame game = new GinRummyGame(p0, p1);

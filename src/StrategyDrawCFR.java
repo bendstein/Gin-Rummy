@@ -21,6 +21,30 @@ public class StrategyDrawCFR extends StrategyDraw {
 			return strategy;
 		}
 
+		//Calculate expected value for next face-down
+		ArrayList<Card> unaccounted =
+				GinRummyUtil.bitstringToCards(MyGinRummyUtil
+						.removeAll(MyGinRummyUtil
+								.cardsToBitstring(new ArrayList<>(Arrays
+										.asList(Card.allCards))), state
+								.getCurrentPlayerSeenCards())); // Cards which have not been seen
+		double evFaceDown = 0;
+
+		for (Card card : unaccounted)
+			evFaceDown += 1d / unaccounted.size() * MyGinRummyUtil.getImprovement(GinRummyUtil.bitstringToCards(state.getCurrentPlayerCards()), card);
+
+		if(improvement >= 6 && improvement > evFaceDown) {
+			ActionDraw[] strategy = {new ActionDraw(true, 1.0, null)};
+			return strategy;
+		}
+
+		long newCards = MyGinRummyUtil.add(state.getCurrentPlayerCards(), state.getFaceUpCardAsObject().getId());
+		if(GinRummyUtil.bitstringToCards(MyGinRummyUtil
+				.getIsolatedSingles(newCards, 0L, GinRummyUtil.cardsToBitstring(unaccounted))).contains(state.getFaceUpCardAsObject())) {
+			ActionDraw[] strategy = {new ActionDraw(false, 1.0, null)};
+			return strategy;
+		}
+
 		/*
 		 * Move inBestMeld out of CFR, make it into a heuristic
 		 */
