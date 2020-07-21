@@ -328,8 +328,8 @@ public class GinRummyGame {
 		//p0 = new BJG5493GinRummyPlayerV1();
 		//p0 = new SimpleGinRummyPlayer();
 		//p0 = new PSHPlayerBasePlayer();
-		//p0 = new BJG5493GinRummyPlayerV2();
-		p0 = new Agent01();
+		p0 = new BJG5493GinRummyPlayerV2();
+		//p0 = new Agent01();
 
 		int numP1Wins = 0;
 		GinRummyGame game = new GinRummyGame(p0, p1);
