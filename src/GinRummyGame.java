@@ -306,7 +306,7 @@ public class GinRummyGame {
 	 */
 	public static void main(String[] args) {
 
-		GinRummyPlayer p0, p1;
+		GinRummyPlayer p1;
 
 		/*
 		// Single verbose demonstration game
@@ -322,26 +322,33 @@ public class GinRummyGame {
 		// Multiple non-verbose games
 
 		setPlayVerbose(false);
-		int numGames = 500;
+		int numGames = 200;
 		p1 = new GinRummyAndTonic_v2();
-		//p0 = new BJG5493GinRummyPlayerV0();
-		//p0 = new BJG5493GinRummyPlayerV1();
-		//p0 = new SimpleGinRummyPlayer();
-		p0 = new PSHPlayerBasePlayer();
-		//p0 = new BJG5493GinRummyPlayerV2();
-		//p0 = new Agent01();
+		GinRummyPlayer[] p0s = new GinRummyPlayer[]{new GinRummyAndTonic_v2(),
+				new Agent01(), new Agent02(), new Agent03(),
+				new Agent04(), new Agent05(), new Agent06(),
+				new Agent07(), new Agent08(), new Agent09(),
+				new Agent10(), new Agent11(), new Agent12(),
+				new Agent13(), new AgentPSHBase(), new AgentSimple()};
 
-		int numP1Wins = 0;
-		GinRummyGame game = new GinRummyGame(p0, p1);
-		long startMs = System.currentTimeMillis();
-		for (int i = 0; i < numGames; i++) {
-			numP1Wins += game.play();
+
+		for(GinRummyPlayer p0 : p0s) {
+			int numP1Wins = 0;
+			GinRummyGame game = new GinRummyGame(p0, p1);
+
+			//long startMs = System.currentTimeMillis();
+
+			for (int i = 0; i < numGames; i++)
+				numP1Wins += game.play();
+
+			//long totalMs = System.currentTimeMillis() - startMs;
+
+			System.out.printf("P0 (%s) v. P1 (%s):\n", p0.getClass().getSimpleName(), p1.getClass().getSimpleName());
+			System.out.printf("\tWins:\n\t\tP0: %d (%f%s)\n\t\tP1: %d (%f%s)\n", numGames - numP1Wins, 100d * (double)(numGames - numP1Wins)/numGames, "%", numP1Wins, 100d * (double)(numP1Wins)/numGames, "%");
+
+			//System.out.printf("\t%d games played in %d ms.\n", numGames, totalMs);
+
 		}
-		long totalMs = System.currentTimeMillis() - startMs;
-
-		System.out.printf("%d games played in %d ms.\n", numGames, totalMs);
-		System.out.printf("Games Won: P0:%d, P1:%d.\n", numGames - numP1Wins, numP1Wins);
-		System.out.printf("Win percentages: P0:%f%s, P1:%f%s\n", 100d * (double)(numGames - numP1Wins)/numGames, "%", 100d * (double)(numP1Wins)/numGames, "%");
 		
 	}
 
