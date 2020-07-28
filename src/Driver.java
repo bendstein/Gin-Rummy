@@ -5,13 +5,13 @@ public class Driver {
 	private static Double util = 0.0;
 	
 	public static void main(String[] args) throws FileNotFoundException, InterruptedException {
-		final int TOTAL_ROUNDS = 50;
-		final int TRAINING_GAMES_PER_ROUND = 1_000_000;
+		final int TOTAL_ROUNDS = 10;
+		final int TRAINING_GAMES_PER_ROUND = 10;
 		final int EVALUATION_GAMES_PER_ROUND = 10;
         final int CONCURRENT_THREADS = 16;
         
 		Player basePlayer = new Player(new StrategyDraw(false), new StrategyDiscard(false), new StrategyKnock(false));
-		Player cfrPlayer = new Player(new StrategyDrawCFR(false), new StrategyDiscard(false), new StrategyKnockCFR(false));
+		Player cfrPlayer = new Player(new StrategyDrawCFR(false), new StrategyDiscardCFR(false), new StrategyKnockCFR(false));
 		
 		for (int round = 0; round < TOTAL_ROUNDS; round++) {
 			// Train for a while
@@ -66,12 +66,16 @@ public class Driver {
 			
 			cfrPlayer.getDrawStrategy().toFile("CFR_Draw_Deadwood.txt");
 			cfrPlayer.getKnockStrategy().toFile("CFR_Knock_Deadwood.txt");
+			cfrPlayer.getDiscardStrategy().toFile("CFR_Discard_Deadwood.txt");
 		}
 
 		System.out.println("\nEquilibrium Drawing Strategy");
 		System.out.println(cfrPlayer.getDrawStrategy().toString());		
 		
 		System.out.println("\nEquilibrium Knocking Strategy");
-		System.out.println(cfrPlayer.getKnockStrategy().toString());		
+		System.out.println(cfrPlayer.getKnockStrategy().toString());
+
+		System.out.println("\nEquilibrium Discarding Strategy");
+		System.out.println(cfrPlayer.getDiscardStrategy().toString());
 	}
 }
