@@ -1,16 +1,18 @@
 import java.io.FileNotFoundException;
 import java.io.PrintWriter;
 import java.util.*;
+import java.util.concurrent.ConcurrentSkipListMap;
+import java.util.concurrent.ConcurrentSkipListSet;
 
 public class StrategyDiscardCFR extends StrategyDiscard {
-    private TreeMap<String, HashSet<int[]>> infosets;
+    private NavigableMap<String, ConcurrentSkipListSet<int[]>> infosets;
 
     /**
      * In the default strategy, we are not training
      */
     public StrategyDiscardCFR(boolean training) {
         super(training);
-        infosets = new TreeMap<>();
+        infosets = new ConcurrentSkipListMap<>();
     }
 
     @Override
@@ -232,25 +234,59 @@ public class StrategyDiscardCFR extends StrategyDiscard {
          * that it applies to.
          */
         if(!infosets.containsKey(infoset))
-            infosets.put(infoset, new HashSet<int[]>() {
+            infosets.put(infoset, new ConcurrentSkipListSet<int[]>(new Comparator<int[]>() {
+                @Override
+                public int compare(int[] o1, int[] o2) {
+                    int sum1 = 0;
+                    int sum2 = 0;
+                    for(int i = 0; i < Math.max(o1.length, o2.length); i++) {
+                        if(i < o1.length) sum1 += o1[i];
+                        if(i < o2.length) sum2 += o2[i];
+                    }
+
+                    return sum1 - sum2;
+                }
+            }) {
                 {
                     add(new int[]{candidates[0], candidates[1]});
                 }
             });
 
-        /*
-         * If the infoset has been seen, make sure there are no duplicates, ignoring the order of the cards
-         */
-        else if(!infosets.get(infoset).contains(new int[]{candidates[0], candidates[1]}) &&
-                !infosets.get(infoset).contains(new int[]{candidates[1], candidates[0]})) {
-            infosets.get(infoset).add(new int[]{candidates[0], candidates[1]});
+        else {
+            /*
+             * If the infoset exists with the cards swapped, swap the cards so that it matches.
+             * contains() isn't working properly with the int[]'s, but there hopefully shouldn't
+             * be *too* many pairs of cards with the same infoset, so it shouldn't slow things
+             * down too much.
+             */
+            boolean contains = false;
+            for(int[] cards : infosets.get(infoset)) {
+                if(cards.length != candidates.length) continue;
+                else if(cards[0] == candidates[0] && cards[1] == candidates[1]) {
+                    contains = true;
+                    break;
+                }
+                else if(cards[0] == candidates[1] && cards[1] == candidates[0]) {
+                    int temp = candidates[0];
+                    candidates[0] = candidates[1];
+                    candidates[1] = temp;
+                    contains = true;
+                    break;
+                }
+            }
+
+            /*
+             * If the infoset has been seen, but not with these cards, add these cards
+             */
+            if(!contains)
+                infosets.get(infoset).add(new int[]{candidates[0], candidates[1]});
         }
 
         return new ActionDiscard[]{
                 new ActionDiscard(GinRummyUtil.cardsToBitstring(
-                        new ArrayList<>(Collections.singletonList(Card.getCard(candidates[0])))), 0.0, infoset + "_" + candidates[0]),
+                        new ArrayList<>(Collections.singletonList(Card.getCard(candidates[0])))), 0.0, infoset + "_" + candidates[1] + "_" + candidates[0]),
                 new ActionDiscard(GinRummyUtil.cardsToBitstring(
-                        new ArrayList<>(Collections.singletonList(Card.getCard(candidates[1])))), 0.0, infoset + "_" + candidates[1])
+                        new ArrayList<>(Collections.singletonList(Card.getCard(candidates[1])))), 0.0, infoset + "_" + candidates[0] + "_" + candidates[1])
         };
 
     }
@@ -396,12 +432,21 @@ public class StrategyDiscardCFR extends StrategyDiscard {
         sb.append(getName()).append("\nDiscards\n");
         for(String s : infosets.descendingKeySet()) {
             for(int[] cards : infosets.get(s)) {
-                String key_k = s + cards[0];
-                String key_n = cards.length > 1? s + "_second" : "";
-                sb.append("put(\"").append(s).append("\", ");
-                sb.append(String.format("%.3f", sumStrategy.getOrDefault(key_k,1.0) /(sumStrategy.getOrDefault(key_k,1.0)+sumStrategy.getOrDefault(key_n,1.0))));
-                sb.append(");");
-                sb.append("\n");
+                String key_k = s + "_" + cards[1] + "_" + cards[0];
+                String key_n = s + "_" + cards[0] + "_" + cards[1];
+
+                double k = sumStrategy.getOrDefault(key_k,1.0);
+                double n = sumStrategy.getOrDefault(key_n,1.0);
+
+                /*
+                 * Prevent NaN's from popping up
+                 */
+                if(k == n && k == 0.0)
+                    continue;
+                //if(!sumStrategy.containsKey(key_k) || !sumStrategy.containsKey(key_n)) continue;
+                //double value = sumStrategy.getOrDefault(key_k,1.0) /
+                //(sumStrategy.getOrDefault(key_k,1.0) + sumStrategy.getOrDefault(key_n,1.0));
+                sb.append(String.format(Locale.US, "%s\t%.3f\t%.3f\n", key_k, k / (k + n), 1 - (k / (k + n))));
             }
         }
 
@@ -410,21 +455,30 @@ public class StrategyDiscardCFR extends StrategyDiscard {
 
     @Override
     public void toFile(String fname) throws FileNotFoundException {
-        StringBuilder sb = new StringBuilder();
+
+        PrintWriter pw = new PrintWriter(fname);
 
         for(String s : infosets.descendingKeySet()) {
             for(int[] cards : infosets.get(s)) {
-                String key_k = s + cards[0];
-                String key_n = cards.length > 1? s + "_second" : "";
-                sb.append("put(\"").append(s).append("\", ");
-                sb.append(String.format("%.3f", sumStrategy.getOrDefault(key_k,1.0) /(sumStrategy.getOrDefault(key_k,1.0)+sumStrategy.getOrDefault(key_n,1.0))));
-                sb.append(");");
-                sb.append("\n");
+                String key_k = s + "_" + cards[1] + "_" + cards[0];
+                String key_n = s + "_" + cards[0] + "_" + cards[1];
+
+
+                double k = sumStrategy.getOrDefault(key_k,1.0);
+                double n = sumStrategy.getOrDefault(key_n,1.0);
+
+                /*
+                 * Prevent NaN's from popping up
+                 */
+                if(k == n && k == 0.0)
+                    continue;
+                //if(!sumStrategy.containsKey(key_k) || !sumStrategy.containsKey(key_n)) continue;
+                //double value = sumStrategy.getOrDefault(key_k,1.0) /
+                        //(sumStrategy.getOrDefault(key_k,1.0) + sumStrategy.getOrDefault(key_n,1.0));
+                pw.write(String.format(Locale.US, "put(\"%s\", %.3f);\n", key_k, k / (k + n)));
             }
         }
 
-        PrintWriter pw = new PrintWriter(fname);
-        pw.print(sb.toString());
         pw.close();
     }
 }
