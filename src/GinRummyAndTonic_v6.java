@@ -1,10 +1,22 @@
+import java.io.File;
+import java.io.PrintWriter;
 import java.util.*;
 import java.util.stream.Collectors;
+
 
 /**
  * Class containing the player
  */
-public class GinRummyAndTonic_v3 implements GinRummyPlayer {
+public class GinRummyAndTonic_v6 implements GinRummyPlayer {
+
+    // TODO: Tune these parameters
+    static int MAX_DISCARDS_TO_CONSIDER = 6;
+    static int MAX_DEADWOOD_DIFFERENCE = 8;
+    static int EXTRAPOLATE_TO_TURNS = 8;
+    static boolean USE_MODIFIED_DRAW = true;
+    static double DEADWOOD_W = 1.65;
+
+    final static int[] countTurns = {18149,18332,18169,17748,17389,16822,15964,14673,13021,11074,8983,7022,5213,3705,2483,1536,755,223,33,4,0};
 
     // <editor-fold desc="Instance Variables">
     /**
@@ -43,8 +55,7 @@ public class GinRummyAndTonic_v3 implements GinRummyPlayer {
     private ArrayList<ArrayList<Card>> oppMelds;
     // </editor-fold>
 
-    public GinRummyAndTonic_v3() {
-
+    public GinRummyAndTonic_v6() {
         HashMap<String, Double> knockStrat = new HashMap<String, Double>() {
             {
                 put("9_49_9", 0.000);
@@ -3697,63 +3708,66 @@ public class GinRummyAndTonic_v3 implements GinRummyPlayer {
         if(improvement > 0 && MyGinRummyUtil.makesNewMeld(hand, card_id))
             return true;
 
-        /*
-         * If improvement is above generalStrategy.getMinPickupDifference() and at least generalStrategy.getCanteloupe() greater
-         * than the expected improvement from drawing face-down, draw face-up.
-         */
-        if(improvement >= generalStrategy.getMinPickupDifference() &&
-                improvement - MyGinRummyUtil.expectedDeadwoodForNextDraw(state) >= generalStrategy.getCanteloupe()) return true;
-
-        /*
-         * Add the face-up to our hand
-         */
-        long newCards = MyGinRummyUtil.add(hand, card_id);
-
-        /*
-         * If we would consider discarding the face-up if it were in our hand, don't draw it.
-         */
-        long preferred = MyGinRummyUtil.findHighestDiscards(newCards, -1, -1, 2);
-        if(MyGinRummyUtil.contains(preferred, card_id))
+        if (USE_MODIFIED_DRAW) {
             return false;
+        }
+        else {
+            /*
+             * If improvement is above generalStrategy.getMinPickupDifference() and at least generalStrategy.getCanteloupe() greater
+             * than the expected improvement from drawing face-down, draw face-up.
+             */
+            if(improvement >= generalStrategy.getMinPickupDifference() &&
+                    improvement - MyGinRummyUtil.expectedDeadwoodForNextDraw(state) >= generalStrategy.getCanteloupe()) return true;
 
-        /*
-         * Get the minimum number of turns it would take to meld the face-up.
-         * 0: Already melded.
-         * 1: Could potentially meld after 1 draw.
-         * 2: It would take 2+ turns at minimum to meld this card.
-         */
-        int minDrawsToMeld = 0;
+            /*
+             * Add the face-up to our hand
+             */
+            long newCards = MyGinRummyUtil.add(hand, card_id);
 
-        if(MyGinRummyUtil.contains(MyGinRummyUtil.getIsolatedSingles(newCards, 0L, state), card_id)) minDrawsToMeld = 2;
-        else if(MyGinRummyUtil.contains(MyGinRummyUtil.getSingles(newCards, 0L, state), card_id)) minDrawsToMeld = 1;
+            /*
+             * If we would consider discarding the face-up if it were in our hand, don't draw it.
+             */
+            long preferred = MyGinRummyUtil.findHighestDiscards(newCards, -1, -1, 2);
+            if(MyGinRummyUtil.contains(preferred, card_id))
+                return false;
 
+            /*
+             * Get the minimum number of turns it would take to meld the face-up.
+             * 0: Already melded.
+             * 1: Could potentially meld after 1 draw.
+             * 2: It would take 2+ turns at minimum to meld this card.
+             */
+            int minDrawsToMeld = 0;
 
-        /*
-         * If the above heuristics don't settle things, turn to the CFR-informed strategy.
-         */
-        String infoset = improvement + "_" + state.getTopCard() + "_" + minDrawsToMeld;
-
-        double prob = generalStrategy.getDrawAt(infoset);
-        return random.nextDouble() < prob;
-
-        /*
-        if(improvement < 2
-                && MyGinRummyUtil.contains(MyGinRummyUtil.getIsolatedSingles(newCards, 0L, state), card_id)) return false;
-        else if(improvement < 3
-                && MyGinRummyUtil.contains(MyGinRummyUtil.getSingles(newCards, 0L, state), card_id)) return false;
-
-        //Then, look at all within 2 of the highest discards. If the list doesn't contain the face-up, pick it up. Otherwise, don't.
-        long preferred = MyGinRummyUtil.findHighestDiscards(newCards, -1, -1, 1);
-
-
-         */
-        /*
-         * If in preferred, don't pick it up, otherwise, put it to cfr.
-         */
-
-        //return !MyGinRummyUtil.contains(preferred, card_id);
+            if(MyGinRummyUtil.contains(MyGinRummyUtil.getIsolatedSingles(newCards, 0L, state), card_id)) minDrawsToMeld = 2;
+            else if(MyGinRummyUtil.contains(MyGinRummyUtil.getSingles(newCards, 0L, state), card_id)) minDrawsToMeld = 1;
 
 
+            /*
+             * If the above heuristics don't settle things, turn to the CFR-informed strategy.
+             */
+            String infoset = improvement + "_" + state.getTopCard() + "_" + minDrawsToMeld;
+
+            double prob = generalStrategy.getDrawAt(infoset);
+            return random.nextDouble() < prob;
+
+			/*
+	        if(improvement < 2
+	                && MyGinRummyUtil.contains(MyGinRummyUtil.getIsolatedSingles(newCards, 0L, state), card_id)) return false;
+	        else if(improvement < 3
+	                && MyGinRummyUtil.contains(MyGinRummyUtil.getSingles(newCards, 0L, state), card_id)) return false;
+
+	        //Then, look at all within 2 of the highest discards. If the list doesn't contain the face-up, pick it up. Otherwise, don't.
+	        long preferred = MyGinRummyUtil.findHighestDiscards(newCards, -1, -1, 1);
+
+
+			 */
+            /*
+             * If in preferred, don't pick it up, otherwise, put it to cfr.
+             */
+
+            //return !MyGinRummyUtil.contains(preferred, card_id);
+        }
     }
 
     @Override
@@ -3785,514 +3799,12 @@ public class GinRummyAndTonic_v3 implements GinRummyPlayer {
 
     @Override
     public Card getDiscard() {
-        long discard = findDiscard(state.getHand(), state.getFaceUp());
-        return Card.getCard(MyGinRummyUtil.bitstringToIDArray(discard)[random.nextInt(MyGinRummyUtil.size(discard))]);
+
+        ArrayList<DiscardMetric> metrics = getDiscardMetrics(state);
+        metrics.sort((DiscardMetric dm1, DiscardMetric dm2) -> dm1.score < dm2.score?-1:dm1.score>dm2.score?1:0);
+        return metrics.get(0).discard;
     }
 
-    /**
-     * @param hand A hand of cards
-     * @param face_up The id of the face-up card
-     * @return A group of all cards which we would most prefer to discard
-     */
-    public long findDiscard(long hand, int face_up) {
-
-        /*
-         * Get all cards that either the opponent has discarded or ignored as face-up
-         */
-        long oppNotHelpful = MyGinRummyUtil.addAll(state.oppDiscard, state.oppForwent);
-
-        /*
-        DEBUG
-        long oppDiscard1 = state.oppDiscard;
-        ArrayList<Card> oppDiscard2 = GinRummyUtil.bitstringToCards(state.oppDiscard);
-        long oppForwent1 = state.oppForwent;
-        ArrayList<Card> oppForwent2 = GinRummyUtil.bitstringToCards(state.oppForwent);
-        ArrayList<Card> oppNotHelpful1 = GinRummyUtil.bitstringToCards(oppNotHelpful);
-        ArrayList<Card> buried1 = GinRummyUtil.bitstringToCards(state.getBuried());
-        ArrayList<Card> oppHand1 = GinRummyUtil.bitstringToCards(state.getOppHand());
-         */
-
-        /*
-         * List of all cards we're considering discarding
-         */
-        long candidateCards = state.getHand();
-
-        /*
-        DEBUG
-        ArrayList<Card> candidateCards1 = GinRummyUtil.bitstringToCards(candidateCards);
-         */
-
-        /*
-         * Don't discard any cards that are in melds
-         */
-        ArrayList<ArrayList<Card>> bestbestMeldSet = MyGinRummyUtil.getBestBestMeldSet(state);
-        if(bestbestMeldSet != null) {
-            for(ArrayList<Card> cards : bestbestMeldSet) {
-                candidateCards = MyGinRummyUtil.removeAll(candidateCards, GinRummyUtil.cardsToBitstring(cards));
-            }
-        }
-
-        /*
-        DEBUG
-        ArrayList<Card> candidateCards2 = GinRummyUtil.bitstringToCards(candidateCards);
-         */
-
-        /*
-         * Only consider cards if they are elements of oppNotHelpful.
-         */
-        if(oppNotHelpful != 0L) {
-            long removeFromCandidates = 0L;
-            for(int i : MyGinRummyUtil.bitstringToIDArray(candidateCards)) {
-                if(!MyGinRummyUtil.contains(oppNotHelpful, i))
-                    removeFromCandidates = MyGinRummyUtil.add(removeFromCandidates, i);
-            }
-
-            if(MyGinRummyUtil.removeAll(candidateCards, removeFromCandidates) != 0L) {
-                candidateCards = MyGinRummyUtil.removeAll(candidateCards, removeFromCandidates);
-
-                /*
-                DEBUG
-                ArrayList<Card> candidateCards3 = GinRummyUtil.bitstringToCards(candidateCards);
-                 */
-            }
-        }
-
-        long sameRank = 0L;
-        long sameSuit = 0L;
-
-        /*
-         * Loop over all cards not helpful to the opponent based on discards/ignored cards. Get all cards
-         * that are of the same rank/same suit & adjacent to one of these
-         */
-        for(int i : MyGinRummyUtil.bitstringToIDArray(oppNotHelpful)) {
-            sameRank = MyGinRummyUtil.addAll(sameRank, MyGinRummyUtil.getSameRank(hand, i));
-            sameSuit = MyGinRummyUtil.addAll(sameSuit, MyGinRummyUtil.getSameSuit(hand, i, 1));
-        }
-
-        /*
-        DEBUG
-        ArrayList<Card> sameSuit1 = GinRummyUtil.bitstringToCards(sameSuit);
-        ArrayList<Card> sameRank1 = GinRummyUtil.bitstringToCards(sameRank);
-         */
-
-        /*
-         * If candidate cards is empty (Should only happen if all cards are melded?)
-         */
-        if(MyGinRummyUtil.size(candidateCards) == 0) {
-
-            /*
-             * The meld set should never be null, but keep for in just in case
-             */
-            if(bestbestMeldSet == null) return MyGinRummyUtil.getHighestDeadwood(state.getHand());
-
-            /*
-             * There must be at least one meld of size > 3. Remove the first or last card from one such meld.
-             */
-            long toconsider = 0L;
-            for(ArrayList<Card> meld : bestbestMeldSet) {
-                if(meld.size() > 3) {
-
-                    /*
-                     * Grab the first and last card of every meld of size > 3 if the opponent can't meld it.
-                     */
-                    if(!MyGinRummyUtil.canOpponentMeld(meld.get(0), state))
-                        toconsider = MyGinRummyUtil.add(toconsider, meld.get(0).getId());
-                    if(!MyGinRummyUtil.canOpponentMeld(meld.get(meld.size() - 1), state))
-                        toconsider = MyGinRummyUtil.add(toconsider, meld.get(meld.size() - 1).getId());
-                }
-            }
-
-            /*
-            DEBUG
-            ArrayList<Card> toconsider1 = GinRummyUtil.bitstringToCards(toconsider);
-             */
-
-            /*
-             * If toconsider is empty, discard the first card of the first size > 3 meld.
-             */
-            if(toconsider == 0L) {
-                for(ArrayList<Card> meld : bestbestMeldSet) {
-                    if(meld.size() > 3) {
-                        return meld.get(0).getId();
-                    }
-                }
-            }
-
-            /*
-             * Otherwise, don't consider cards that the opponent has a similar card to
-             */
-            long toRemove = 0L;
-            for(int i : MyGinRummyUtil.bitstringToIDArray(toconsider)) {
-                if(MyGinRummyUtil.getSameSuit(state.getOppHand(), i, 1) != 0L) toRemove = MyGinRummyUtil.add(toRemove, i);
-                if(MyGinRummyUtil.getSameRank(state.getOppHand(), i) != 0L) toRemove = MyGinRummyUtil.add(toRemove, i);
-            }
-
-            if(MyGinRummyUtil.removeAll(toconsider, toRemove) != 0L) toconsider = MyGinRummyUtil.removeAll(toconsider, toRemove);
-
-            /*
-            DEBUG
-            ArrayList<Card> toconsider2 = GinRummyUtil.bitstringToCards(toconsider);
-             */
-
-            candidateCards = toconsider;
-        }
-        /*
-         * If candidate cards is not empty, and the opponent hasn't discarded/ignored any similar cards
-         */
-        else if(sameRank == 0L && sameSuit == 0L) {
-
-            /*
-             * Don't consider any cards that we know the opponent could meld
-             */
-            long toRemove = 0L;
-            for(int i : MyGinRummyUtil.bitstringToIDArray(candidateCards)) {
-                if(MyGinRummyUtil.canOpponentMeld(Card.getCard(i), state)) toRemove = MyGinRummyUtil.remove(toRemove, i);
-            }
-
-            /*
-            DEBUG
-            ArrayList<Card> toRemoveA = GinRummyUtil.bitstringToCards(toRemove);
-             */
-
-            /*
-             * Don't consider a card if we know the opponent has a card of the same rank/same suit and adjacent
-             */
-            long toRemove2 = 0L;
-            for(int i : MyGinRummyUtil.bitstringToIDArray(candidateCards)) {
-                if(MyGinRummyUtil.getSameSuit(state.getOppHand(), i, 1) != 0L) toRemove2 = MyGinRummyUtil.add(toRemove2, i);
-                if(MyGinRummyUtil.getSameRank(state.getOppHand(), i) != 0L) toRemove2 = MyGinRummyUtil.add(toRemove2, i);
-            }
-
-            /*
-            DEBUG
-            ArrayList<Card> toRemoveB = GinRummyUtil.bitstringToCards(toRemove2);
-             */
-
-            if(MyGinRummyUtil.removeAll(candidateCards, toRemove) != 0L) candidateCards = MyGinRummyUtil.removeAll(candidateCards, toRemove);
-            if(MyGinRummyUtil.removeAll(candidateCards, toRemove2) != 0L) candidateCards = MyGinRummyUtil.removeAll(candidateCards, toRemove2);
-
-            /*
-            DEBUG
-            ArrayList<Card> candidateCards4 = GinRummyUtil.bitstringToCards(candidateCards);
-             */
-        }
-
-        /*
-         * Candidate cards isn't empty, and there is at least one card of the same suit that's adjacent, or of the same rank
-         */
-        else {
-
-            /*
-             * Cards that are melded with the discard pile are less useful, don't consider them.
-             */
-            long toRemove3 = 0L;
-            for(int i : MyGinRummyUtil.bitstringToIDArray(sameRank)) {
-                if(!MyGinRummyUtil.contains(MyGinRummyUtil.getMelded(state.getBuried(), 0L), i)) {
-                    toRemove3 = MyGinRummyUtil.add(toRemove3, i);
-                }
-            }
-
-            if(MyGinRummyUtil.removeAll(candidateCards, toRemove3) != 0)
-                candidateCards = MyGinRummyUtil.removeAll(candidateCards, toRemove3);
-
-            /*
-            DEBUG
-            ArrayList<Card> toRemoveA = GinRummyUtil.bitstringToCards(toRemove3);
-            ArrayList<Card> candidateCards4 = GinRummyUtil.bitstringToCards(candidateCards);
-             */
-
-            toRemove3 = 0L;
-            for(int i : MyGinRummyUtil.bitstringToIDArray(sameSuit)) {
-                if(!MyGinRummyUtil.contains(MyGinRummyUtil.getMelded(state.getBuried(), 0L), i)) {
-                    toRemove3 = MyGinRummyUtil.add(toRemove3, i);
-                }
-            }
-
-            if(MyGinRummyUtil.removeAll(candidateCards, toRemove3) != 0)
-                candidateCards = MyGinRummyUtil.removeAll(candidateCards, toRemove3);
-
-            /*
-            DEBUG
-            ArrayList<Card> toRemoveB = GinRummyUtil.bitstringToCards(toRemove3);
-            ArrayList<Card> candidateCards5 = GinRummyUtil.bitstringToCards(candidateCards);
-             */
-
-            /*
-             * If the opponent can meld the card, don't consider it
-             */
-            long toRemove = 0L;
-            for(int i : MyGinRummyUtil.bitstringToIDArray(candidateCards)) {
-                if(MyGinRummyUtil.canOpponentMeld(Card.getCard(i), state)) toRemove = MyGinRummyUtil.remove(toRemove, i);
-            }
-
-            /*
-            DEBUG
-            ArrayList<Card> toRemoveC = GinRummyUtil.bitstringToCards(toRemove);
-             */
-
-            /*
-             * Don't consider a card if we know the opponent has a card of the same rank/same suit and adjacent
-             */
-            long toRemove2 = 0L;
-            for(int i : MyGinRummyUtil.bitstringToIDArray(candidateCards)) {
-                if(MyGinRummyUtil.getSameSuit(state.getOppHand(), i, 1) != 0L) toRemove2 = MyGinRummyUtil.add(toRemove2, i);
-                if(MyGinRummyUtil.getSameRank(state.getOppHand(), i) != 0L) toRemove2 = MyGinRummyUtil.add(toRemove2, i);
-            }
-
-            /*
-            DEBUG
-            ArrayList<Card> toRemoveD = GinRummyUtil.bitstringToCards(toRemove2);
-             */
-
-            if(MyGinRummyUtil.removeAll(candidateCards, toRemove) != 0L) candidateCards = MyGinRummyUtil.removeAll(candidateCards, toRemove);
-            if(MyGinRummyUtil.removeAll(candidateCards, toRemove2) != 0L) candidateCards = MyGinRummyUtil.removeAll(candidateCards, toRemove2);
-
-            /*
-            DEBUG
-            ArrayList<Card> candidateCards6 = GinRummyUtil.bitstringToCards(candidateCards);
-             */
-
-        }
-
-        /*
-         * If there is only 1 card left, just return it.
-         */
-        if(MyGinRummyUtil.size(candidateCards) == 1) return MyGinRummyUtil.bitstringToIDArray(candidateCards)[0];
-
-        /*
-         * At this point we have a list of potential candidate cards
-         */
-
-        /*
-        DEBUG
-        ArrayList<Card> candidateCards4 = GinRummyUtil.bitstringToCards(candidateCards);
-         */
-
-        /*
-         * Only consider remaining cards if they're within 2 of the highest improvement discards
-         */
-        candidateCards = MyGinRummyUtil.findHighestDiscards(candidateCards, drawn, face_up, 2);
-
-        /*
-        DEBUG
-        ArrayList<Card> candidateCards5 = GinRummyUtil.bitstringToCards(candidateCards);
-         */
-
-        /*
-         * Make a list of all candidate cards, with a temporary copy.
-         */
-        ArrayList<Integer> ids = MyGinRummyUtil.bitstringToIDs(candidateCards);
-        ArrayList<Integer> temp = new ArrayList<>(ids);
-        long toRemove = 0L;
-
-        /*
-         * If there are any cards that can only be melded in 2 draws minimum, only consider them
-         */
-        for(int i : ids) {
-            temp.remove((Integer) i);
-            if(!MyGinRummyUtil.contains((MyGinRummyUtil.getIsolatedSingles(hand, MyGinRummyUtil.idsToBitstring(temp), state)), i))
-                toRemove = MyGinRummyUtil.add(toRemove, i);
-            temp.add((Integer) i);
-        }
-
-        /*
-        DEBUG
-        ArrayList<Card> toRemoveA = GinRummyUtil.bitstringToCards(toRemove);
-         */
-
-        if(MyGinRummyUtil.removeAll(candidateCards, toRemove) != 0L) candidateCards = MyGinRummyUtil.removeAll(candidateCards, toRemove);
-
-        /*
-        DEBUG
-        ArrayList<Card> candidateCards6 = GinRummyUtil.bitstringToCards(candidateCards);
-         */
-
-        ids = MyGinRummyUtil.bitstringToIDs(candidateCards);
-        temp = new ArrayList<>(ids);
-        toRemove = 0L;
-
-        /*
-         * If there are any cards that can only be melded in 1 draws minimum, only consider them
-         */
-        for(int i : ids) {
-            temp.remove((Integer) i);
-            if(!MyGinRummyUtil.contains((MyGinRummyUtil.getSingles(hand, MyGinRummyUtil.idsToBitstring(temp), state)), i))
-                toRemove = MyGinRummyUtil.add(toRemove, i);
-            temp.add((Integer) i);
-        }
-
-        /*
-        DEBUG
-        ArrayList<Card> toRemoveB = GinRummyUtil.bitstringToCards(toRemove);
-         */
-
-        if(MyGinRummyUtil.removeAll(candidateCards, toRemove) != 0L) candidateCards = MyGinRummyUtil.removeAll(candidateCards, toRemove);
-
-        /*
-        DEBUG
-        ArrayList<Card> candidateCards7 = GinRummyUtil.bitstringToCards(candidateCards);
-         */
-
-        /*
-         * Narrow it down to only the highest discards
-         */
-        candidateCards = MyGinRummyUtil.findHighestDiscards(candidateCards, drawn, face_up, 0);
-
-        /*
-        DEBUG
-        ArrayList<Card> candidateCards9 = GinRummyUtil.bitstringToCards(candidateCards);
-         */
-
-        /*
-         * At this point, check for any adjacent/same rank cards in the discard pile.
-         * A card has same rank/same suit and adjacent cards in the discard pile, is safer to discard
-         */
-        long toRemove2 = 0L;
-        for(int i : MyGinRummyUtil.bitstringToIDArray(candidateCards)) {
-            if(MyGinRummyUtil.getSameSuit(state.getBuried(), i, 1) != 0L) toRemove2 = MyGinRummyUtil.add(toRemove2, i);
-            if(MyGinRummyUtil.getSameRank(state.getBuried(), i) != 0L) toRemove2 = MyGinRummyUtil.add(toRemove2, i);
-        }
-
-        /*
-        DEBUG
-        ArrayList<Card> toRemoveC = GinRummyUtil.bitstringToCards(toRemove2);
-         */
-
-        if(MyGinRummyUtil.removeAll(candidateCards, toRemove2) != 0L)
-            candidateCards = MyGinRummyUtil.removeAll(candidateCards, toRemove2);
-
-        /*
-        DEBUG
-        ArrayList<Card> candidateCards10 = GinRummyUtil.bitstringToCards(candidateCards);
-         */
-
-        /*
-         * If there are any cards that aren't in groups of 2, prefer discarding them
-         */
-        if(MyGinRummyUtil.size(candidateCards) > 2) {
-            ArrayList<Integer> cards = MyGinRummyUtil.bitstringToIDs(candidateCards);
-            long duples = 0L;
-
-            for(int i : cards)
-                duples += MyGinRummyUtil.getDuples(candidateCards, i);
-
-            if(MyGinRummyUtil.removeAll(candidateCards, duples) != 0L)
-                candidateCards = MyGinRummyUtil.removeAll(candidateCards, duples);
-
-        }
-
-        /*
-        DEBUG
-        ArrayList<Card> candidateCards8 = GinRummyUtil.bitstringToCards(candidateCards);
-         */
-
-        /*
-         * Choose a random remaining card
-         */
-        return MyGinRummyUtil.bitstringToIDArray(candidateCards)[random.nextInt(MyGinRummyUtil.size(candidateCards))];
-    }
-
-    /**
-     * @param hand A hand of cards
-     * @param face_up The id of the face-up card
-     * @return A group of all cards which we would most prefer to discard
-     */
-    public long findDiscardOld(long hand, int face_up) {
-
-        /*
-         * First, get all cards who's removal would lower our deadwood the most
-         */
-        long candidateCards = MyGinRummyUtil.findHighestDiscards(hand, drawn, face_up, 0);
-        long toRemove = 0L;
-        ArrayList<Integer> ids = MyGinRummyUtil.bitstringToIDs(candidateCards);
-        ArrayList<Integer> temp = new ArrayList<>(ids);
-
-        for(int i : ids) {
-            temp.remove((Integer) i);
-            if(!MyGinRummyUtil.contains((MyGinRummyUtil.getIsolatedSingles(hand, MyGinRummyUtil.idsToBitstring(temp), state)), i))
-                toRemove = MyGinRummyUtil.add(toRemove, i);
-            temp.add((Integer) i);
-        }
-
-        if(toRemove != candidateCards) candidateCards = MyGinRummyUtil.removeAll(candidateCards, toRemove);
-
-        else {
-            toRemove = 0L;
-
-            for(int i : ids) {
-                temp.remove((Integer) i);
-                if(!MyGinRummyUtil.contains((MyGinRummyUtil.getSingles(hand, MyGinRummyUtil.idsToBitstring(temp), state)), i))
-                    toRemove = MyGinRummyUtil.add(toRemove, i);
-                temp.add((Integer) i);
-            }
-
-            if(toRemove != candidateCards) candidateCards = MyGinRummyUtil.removeAll(candidateCards, toRemove);
-        }
-
-        /*
-         * Prefer cards who cannot be melded even after 2 draws.
-         * If there are none (or no cards can), prefer those who can't be melded after 1 draw.
-         */
-        long not_singles = ~MyGinRummyUtil.getIsolatedSingles(hand, 0L, state);
-        candidateCards = MyGinRummyUtil.removeAll(candidateCards, not_singles) == 0L ?
-                candidateCards : MyGinRummyUtil.removeAll(candidateCards, not_singles);
-
-        if(MyGinRummyUtil.removeAll(candidateCards, not_singles) == 0L) {
-            not_singles = ~MyGinRummyUtil.getSingles(hand, 0L, state);
-            candidateCards = MyGinRummyUtil.removeAll(candidateCards, not_singles) == 0L ?
-                    candidateCards : MyGinRummyUtil.removeAll(candidateCards, not_singles);
-        }
-
-        /*
-         * Then, filter out cards which would be helpful to the opponent
-         */
-        if(MyGinRummyUtil.size(candidateCards) > 1) {
-            toRemove = 0L; //Don't remove until after loop
-            long preferred = 0L; //Cards we would prefer to remove
-
-            for(Card c : MyGinRummyUtil.bitstringToCards(candidateCards)) {
-
-                /*
-                 * Also incorporate unseen cards
-                 */
-
-                /*
-                 * If a card could be used in an opp meld, or at least bring them closer, avoid discarding it
-                 */
-                if(MyGinRummyUtil.canOpponentMeld(c, state)) toRemove = MyGinRummyUtil.add(toRemove, c.getId()); //If card could help opp meld, avoid tossing
-                else if(MyGinRummyUtil.containsRank(state.getOppHand(), c.getId()) || MyGinRummyUtil.containsSuit(state.getOppHand(), c.getId(), 2)) toRemove = MyGinRummyUtil.add(toRemove, c.getId()); //If card brings opp closer to a meld, avoid tossing
-
-                //if (state.probabilityThatCardIsNotUseful(c) == 1.0) toRemove = MyGinRummyUtil.add(toRemove, c.getId());
-                    /*
-                     * If the opp has discarded cards that could be melded with this card, it is less likely they would find it useful. Prefer to discard any of these cards.
-                     */
-                else if(MyGinRummyUtil.containsRank(state.getOppDiscard(), c.getId()) || MyGinRummyUtil.containsSuit(state.getOppDiscard(), c.getId(), 2)) preferred = MyGinRummyUtil.add(preferred, c.getId()); //If similar cards have been tossed, prefer
-                else if(MyGinRummyUtil.containsRank(state.getOppForwent(), c.getId()) || MyGinRummyUtil.containsSuit(state.getOppForwent(), c.getId(), 1)) preferred = MyGinRummyUtil.add(preferred, c.getId());;
-            }
-
-            if(toRemove != candidateCards) candidateCards = MyGinRummyUtil.removeAll(candidateCards, toRemove); //Remove useful cards to the opponent, unless all cards would be useful
-            if(preferred != 0L && preferred != candidateCards) candidateCards = MyGinRummyUtil.removeAll(candidateCards, ~preferred); //Only consider cards which we would prefer to discard
-
-        }
-
-        /*
-         * If there are more than 2 cards left, if any are dupled, avoid throwing them away
-         */
-        if(MyGinRummyUtil.size(candidateCards) > 2) {
-            ArrayList<Integer> cards = MyGinRummyUtil.bitstringToIDs(candidateCards);
-            long duples = 0L;
-
-            for(int i : cards)
-                duples += MyGinRummyUtil.getDuples(candidateCards, i);
-
-            if(MyGinRummyUtil.removeAll(candidateCards, duples) != 0L)
-                candidateCards = MyGinRummyUtil.removeAll(candidateCards, duples);
-
-        }
-
-        return candidateCards;
-
-    }
 
     @Override
     public void reportDiscard(int playerNum, Card discardedCard) {
@@ -4341,6 +3853,8 @@ public class GinRummyAndTonic_v3 implements GinRummyPlayer {
             double prob = generalStrategy.getKnockAt(k);
             if(deadwood == 0 || random.nextDouble() < prob) {
                 //Select the meld configuration to submit.
+
+                /*
                 ArrayList<ArrayList<Card>> bestMeldSet = null;
                 double minExpectedLayoff = Double.MAX_VALUE;
                 for(ArrayList<ArrayList<Card>> meldSet : bestMeldSets) {
@@ -4366,11 +3880,15 @@ public class GinRummyAndTonic_v3 implements GinRummyPlayer {
                         }
                     }
 
+                 */
+
                     /*
                      * The sum of the deadwood of each layoff card * the probability that the opponent has said card
                      * is expectedLayoff. If expectedLayoff < minExpectedLayoff, it is the new minimum, so assign
                      * bestMeldSet to the current meld set. In the end, return the meld set with the lowest expectedLayoff.
                      */
+
+                    /*
                     double expectedLayoff = 0d;
                     for(Card card : layoff) {
                         //If the card is in an opponent meld, we don't expect them to try to lay it off.
@@ -4385,6 +3903,10 @@ public class GinRummyAndTonic_v3 implements GinRummyPlayer {
                     }
 
                 }
+
+                     */
+
+                ArrayList<ArrayList<Card>> bestMeldSet = MyGinRummyUtil.getBestBestMeldSet(state);
 
                 return bestMeldSet;
             }
@@ -4713,7 +4235,7 @@ public class GinRummyAndTonic_v3 implements GinRummyPlayer {
                     if(!toCheck.contains(i) && !checked.contains(i)) toCheck.add(i);
                 }
 
-            /*
+				/*
             // Add all potential same-suit melds to the list
             if (sameSuitIds.length == 2)
                 melds.add(MyGinRummyUtil.add(MyGinRummyUtil.idsToBitstring(sameSuitIds), id));
@@ -4725,7 +4247,7 @@ public class GinRummyAndTonic_v3 implements GinRummyPlayer {
                     melds.add(MyGinRummyUtil.add(MyGinRummyUtil.idsToBitstring(sameSuitIds), i));
             }
 
-             */
+				 */
             }
 
             if(run.size() >= 3) melds.add(MyGinRummyUtil.idsToBitstring(run));
@@ -4783,7 +4305,7 @@ public class GinRummyAndTonic_v3 implements GinRummyPlayer {
                     if(!toCheck.contains(i) && !checked.contains(i)) toCheck.add(i);
                 }
 
-            /*
+				/*
             // Add all potential same-suit melds to the list
             if (sameSuitIds.length == 2)
                 melds.add(MyGinRummyUtil.add(MyGinRummyUtil.idsToBitstring(sameSuitIds), id));
@@ -4795,7 +4317,7 @@ public class GinRummyAndTonic_v3 implements GinRummyPlayer {
                     melds.add(MyGinRummyUtil.add(MyGinRummyUtil.idsToBitstring(sameSuitIds), i));
             }
 
-             */
+				 */
             }
 
             if(run.size() >= 3) melds.add(MyGinRummyUtil.idsToBitstring(run));
@@ -4852,7 +4374,7 @@ public class GinRummyAndTonic_v3 implements GinRummyPlayer {
                     if(!toCheck.contains(i) && !checked.contains(i)) toCheck.add(i);
                 }
 
-            /*
+				/*
             // Add all potential same-suit melds to the list
             if (sameSuitIds.length == 2)
                 melds.add(MyGinRummyUtil.add(MyGinRummyUtil.idsToBitstring(sameSuitIds), id));
@@ -4864,7 +4386,7 @@ public class GinRummyAndTonic_v3 implements GinRummyPlayer {
                     melds.add(MyGinRummyUtil.add(MyGinRummyUtil.idsToBitstring(sameSuitIds), i));
             }
 
-             */
+				 */
             }
 
             if(run.size() >= 3) melds.add(MyGinRummyUtil.idsToBitstring(run));
@@ -6760,5 +6282,550 @@ public class GinRummyAndTonic_v3 implements GinRummyPlayer {
 
         // </editor-fold>
     }
-}
 
+
+    /***************************************************************************************************
+     *
+     *                                      Discard Code
+     *
+     ****************************************************************************************************/
+
+    static double[] opponentExpectedImprovement = new double[13 * 16_384];
+    static int[] opponentCounts = new int[13 * 16_384];
+    static {
+        loadOpponentStats();
+    }
+
+    /**
+     * A class to store information about the worth of a discard
+     */
+    public static class DiscardMetric {
+        public DiscardMetric(Card discard, int immediateDeadwood, ArrayList<Card> hand) {
+            this.discard = discard;
+            this.immediateDeadwood = immediateDeadwood;
+            alwaysMelded = true;
+            this.hand = hand;
+        }
+
+        Card discard;           // The card to be discarded
+        int immediateDeadwood; 	// The deadwood that would remain in the hand if the card were discarded
+        ArrayList<Card> hand;   // The current hand without this discard
+        boolean alwaysMelded;   // Whether this card is in every meld in the current hand
+        double score; // The value of this discard (low numbers are better)
+        ArrayList<Integer> deadwood = new ArrayList<>(); // deadwood after one turn if we discard this card
+
+        // Stats about opponents hand
+        boolean opponentStatsCalculated;
+        int oppSameRank;       // number of cards in opponent's hand of same rank
+        int mySameRank;        // number of cards of same rank that are in my hand
+        int discardSameRank;   // number of cards of same rank that have been discarded
+        int upSuited;          // whether the card of the same suit with the next higher rank
+        // (0) has been discarded/does not exist, (1) is in opponent's hand, (2) is in my hand, or (3) is unseen
+        int up2Suited;         // whether the card of the same suit with a rank two higher
+        // (0) has been discarded/does not exist, (1) is in opponent's hand, (2) is in my hand, or (3) is unseen
+        int downSuited;        // whether the card of the same suit with the next lower rank
+        // (0) has been discarded/does not exist, (1) is in opponent's hand, (2) is in my hand, or (3) is unseen
+        int down2Suited;       // whether the card of the same suit with a rank two lower
+        // (0) has been discarded/does not exist, (1) is in opponent's hand, (2) is in my hand, or (3) is unseen
+
+        private void calculateOpponentStats(State state) {
+            opponentStatsCalculated = true;
+            long hand = state.getHand();
+            long opp = state.getOppHand();
+            long burried = state.getBuried();
+            for (int suit = 0; suit < 4; suit++) {
+                long c = 1L << (discard.getRank() + suit * 13);
+                if (( opp & c) != 0 ) oppSameRank++;
+                if (( hand & c) != 0 ) mySameRank++;
+                if (( burried & c) != 0 ) discardSameRank++;
+            }
+            if (discard.getRank() == 12) {
+                upSuited = 0;
+            }
+            else {
+                long c = 1L << (discard.getId() + 1);
+                if ((burried & c) != 0 ) upSuited = 0;
+                else if (( opp & c) != 0 ) upSuited = 1;
+                else if (( hand & c) != 0 ) upSuited = 2;
+                else upSuited = 3;
+            }
+            if (discard.getRank() >= 11) {
+                up2Suited = 0;
+            }
+            else {
+                long c = 1L << (discard.getId() + 2);
+                if ((burried & c) != 0 ) up2Suited = 0;
+                else if (( opp & c) != 0 ) up2Suited = 1;
+                else if (( hand & c) != 0 ) up2Suited = 2;
+                else upSuited = 3;
+            }
+            if (discard.getRank() == 0) {
+                downSuited = 0;
+            }
+            else {
+                long c = 1L << (discard.getId() - 1);
+                if ((burried & c) != 0 ) downSuited = 0;
+                else if (( opp & c) != 0 ) downSuited = 1;
+                else if (( hand & c) != 0 ) downSuited = 2;
+                else downSuited = 3;
+            }
+            if (discard.getRank() <= 1) {
+                down2Suited = 0;
+            }
+            else {
+                long c = 1L << (discard.getId() - 2);
+                if ((burried & c) != 0 ) down2Suited = 0;
+                else if (( opp & c) != 0 ) down2Suited = 1;
+                else if (( hand & c) != 0 ) down2Suited = 2;
+                else down2Suited = 3;
+            }
+        }
+
+        /**
+         * @return an index into the opponent EV improvment lookup table, based on card stats
+         */
+        int getIndex() {
+            int index = 0;
+            index += discard.getRank();
+            index <<= 2;
+            index += Math.min(oppSameRank,3);
+            index <<= 2;
+            index += Math.min(mySameRank,3);
+            index <<= 2;
+            index += Math.min(discardSameRank,3);
+            index <<= 2;
+            index += upSuited;
+            index <<= 2;
+            index += up2Suited;
+            index <<= 2;
+            index += downSuited;
+            index <<= 2;
+            index += down2Suited;
+            return index;
+        }
+
+        double getExpectedOpponentImprovement(State state) {
+            if (!opponentStatsCalculated) calculateOpponentStats(state);
+            if (opponentCounts[getIndex()] >= 100)
+                return opponentExpectedImprovement[getIndex()];
+            else
+                return 0.0;
+        }
+    }
+
+
+    /**
+     * Return a list of DiscardMetric's for cards that would make good discards
+     * 	The list will contain only cards that are not melded (in at least one of the best meld configurations)
+     *  The list will be at most MAX_DISCARDS_TO_CONSIDER long
+     *  The list will not have any cards which, if discarded, would produce a deadwood improvement of less than
+     *     MAX_DEADWOOD_DIFFERENCE + [best possible improvement]
+     * @param state the current game state
+     * @return the discard metrics without a valid score (since we are not looking at the next draw card yet)
+     */
+    private static ArrayList<DiscardMetric> getPossibleDiscards(State state) {
+        ArrayList<Card> cards = MyGinRummyUtil.bitstringToCards(state.getHand());
+
+        ArrayList<DiscardMetric> metrics = new ArrayList<>();
+        // Check for gin...
+        for (Card discard: cards) {
+            if (discard.getId() != state.getFaceUp()) {
+                @SuppressWarnings("unchecked")
+                ArrayList<Card> nextHand = (ArrayList<Card>) cards.clone();
+                nextHand.remove(discard);
+                ArrayList<ArrayList<ArrayList<Card>>> bestMeldSets = GinRummyUtil.cardsToBestMeldSets(nextHand);
+                int deadwood = bestMeldSets.isEmpty() ? GinRummyUtil.getDeadwoodPoints(nextHand)
+                        : GinRummyUtil.getDeadwoodPoints(bestMeldSets.get(0), nextHand);
+                metrics.add(new DiscardMetric(discard, deadwood, nextHand));
+            }
+        }
+        metrics.sort((DiscardMetric o1, DiscardMetric o2) -> o1.immediateDeadwood - o2.immediateDeadwood);
+        int bestDeadwood = metrics.get(0).immediateDeadwood;
+        if (bestDeadwood == 0) {
+            // Gin is possible!
+            while (metrics.size() > 1) metrics.remove(metrics.size()-1);
+            return metrics;
+        }
+
+        ArrayList<ArrayList<ArrayList<Card>>> bestMeldSets = GinRummyUtil.cardsToBestMeldSets(cards);
+        if (bestMeldSets.isEmpty()) {
+            for (DiscardMetric dm: metrics) dm.alwaysMelded = false;
+        }
+        else {
+            for (int i = 0; i < bestMeldSets.size(); i++) {
+                HashSet<Card> melded = new HashSet<>();
+                for (int j = 0; j < bestMeldSets.get(i).size(); j++) {
+                    for (int k = 0; k < bestMeldSets.get(i).get(j).size(); k++) {
+                        melded.add(bestMeldSets.get(i).get(j).get(k));
+                    }
+                }
+                for (DiscardMetric dm: metrics) {
+                    if (!melded.contains(dm.discard)) dm.alwaysMelded = false;
+                }
+            }
+        }
+
+        // Remove bad discard choices
+        while (metrics.size() > MAX_DISCARDS_TO_CONSIDER ||
+                metrics.get(metrics.size()-1).immediateDeadwood > bestDeadwood + MAX_DEADWOOD_DIFFERENCE) {
+            metrics.remove(metrics.size()-1);
+        }
+        metrics.removeIf(dm -> dm.alwaysMelded);
+        return metrics;
+    }
+
+
+    /**
+     * Estimate the deadwood of an 11-card hand, but making melds out of the 11 cards,
+     * and then discarding the highest value deadwood card
+     * @param cards
+     * @return
+     */
+    static int estimateBestDeadwoodAfterDiscard(ArrayList<Card> cards) {
+        ArrayList<ArrayList<ArrayList<Card>>> bestMeldSets = GinRummyUtil.cardsToBestMeldSets(cards);
+        HashSet<Card> melded = new HashSet<>();
+        if (!bestMeldSets.isEmpty()) {
+            for (int i = 0; i < bestMeldSets.get(0).size(); i++) {
+                for (int j = 0; j < bestMeldSets.get(0).get(i).size(); j++) {
+                    melded.add(bestMeldSets.get(0).get(i).get(j));
+                }
+            }
+        }
+        int maxCard = 0;
+        int deadwood = 0;
+        for (Card card: cards) {
+            if (!melded.contains(card)) {
+                int d = GinRummyUtil.getDeadwoodPoints(card);
+                deadwood += d;
+                maxCard = Math.max(maxCard, d);
+            }
+        }
+        return deadwood - maxCard;
+
+    }
+
+    /**
+     * Get metrics that can be used to evaluate all discards
+     * @param state the current game state
+     * @return
+     */
+    public static ArrayList<DiscardMetric> getDiscardMetrics(State state) {
+        // Get potential discards
+        ArrayList<DiscardMetric> metrics = getPossibleDiscards(state);
+        if (metrics.size() == 1) return metrics;
+
+        for (DiscardMetric dm : metrics) {
+            int count = 0;		// count of total draw cards
+            double goodWeight = 0;  // count of draw cards that I would want to pick up face up
+            double totalWeight = 0;  // count of draw cards that I would want to pick up face up
+            int[] deadwood = new int[52]; // deadwood after each draw card
+            for (int c = 0; c < 52; c++) {
+                long cardBitstring = 1L << c;
+                if ((cardBitstring & state.getUnseen()) != 0) {
+                    count++;
+                    Card card = Card.getCard(c);
+                    dm.hand.add(card);
+                    dm.deadwood.add(estimateBestDeadwoodAfterDiscard(dm.hand));
+                    dm.hand.remove(dm.hand.size() - 1);
+                }
+            }
+        }
+
+        double[] probTurns = new double[EXTRAPOLATE_TO_TURNS + 1];
+        double sum = 0;
+        if (state.getTurn() + 1 >= countTurns.length) {
+            probTurns[0] = 1;
+        }
+        else {
+            for (int i = 0; i < EXTRAPOLATE_TO_TURNS; i++) {
+                double p = 0;
+                if (i + state.getTurn() + 1 < countTurns.length) {
+                    p = (countTurns[i + state.getTurn() + 1] - countTurns[i + state.getTurn()])/countTurns[state.getTurn()];
+                }
+                else
+                    break;
+                probTurns[i] = p;
+                sum += p;
+            }
+            probTurns[EXTRAPOLATE_TO_TURNS] = 1 - sum;
+        }
+
+        // Score each discard
+        for (DiscardMetric dm: metrics) {
+            dm.score = probTurns[0] * dm.immediateDeadwood;
+
+            int scenariosCounted = 0;
+            double dwSum = 0;
+            Collections.sort(dm.deadwood);
+            for (int i = EXTRAPOLATE_TO_TURNS; i >= 1; i--) {
+                double cardsSeen = i * DEADWOOD_W;
+
+                while (scenariosCounted < Math.max(1.0, dm.deadwood.size() /cardsSeen)) {
+                    dwSum += dm.deadwood.get(scenariosCounted);
+                    scenariosCounted++;
+                }
+
+                dm.score += probTurns[i] * (dwSum / scenariosCounted);
+            }
+
+            double oppEv = dm.getExpectedOpponentImprovement(state);
+            dm.score += oppEv;
+        }
+        return metrics;
+    }
+
+    // Create an array of cards from a space separated string representation
+    public static Card[] getCards(String description) {
+        String[] tokens = description.split(" ");
+        Card[] retVal = new Card[tokens.length];
+        for (int i = 0; i < tokens.length; i++) {
+            retVal[i] = getCard(tokens[i]);
+        }
+        return retVal;
+    }
+
+    // Return the card corresponding to the string representation
+    public static Card getCard(String description) {
+        int suit = 0;
+        while (!Card.suitNames[suit].equals(description.substring(1,2))) {
+            suit++;
+        }
+        int rank = 0;
+        while (!Card.rankNames[rank].equals(description.substring(0,1))) {
+            rank++;
+        }
+        return Card.getCard(rank, suit);
+    }
+
+    // Test routine
+    public static void main(String[] args) {
+        GinRummyAndTonic_v6 agent = new GinRummyAndTonic_v6();
+        agent.startGame(0,0,getCards("JD, 8S, QC, AS, 3H, 2D, 7D, KS, 6C, 4C"));
+
+        agent.reportDraw(0, getCard("6H"));
+        agent.reportDiscard(0, getCard("QC"));
+
+        agent.reportDraw(1, null); // unseen 6D
+        agent.reportDiscard(1, getCard("KH"));
+
+        agent.reportDraw(0, getCard("3S"));
+        System.out.println("\nScenario 1 (page 1 of analysis)");
+        System.out.println("[AS, 2D, 3H, 3S, 4C, 6C, 6H, 7D, 8S, JD, KS] ");
+        evaluateDiscards(agent);
+        agent.reportDiscard(0, getCard("JD"));
+
+        agent.reportDraw(1, null); // unseen AC
+        agent.reportDiscard(1, getCard("TC"));
+
+        agent.reportDraw(0, getCard("2S"));
+        agent.reportDiscard(0, getCard("KS"));
+
+        agent.reportDraw(1, null); // unseen 7S
+        agent.reportDiscard(1, getCard("9H"));
+
+        agent.reportDraw(0, getCard("7H"));
+        System.out.println("\nScenario 2 (page 1 of analysis)");
+        System.out.println("[[AS, 2S, 3S], [2D, 3H, 4C, 6C, 6H, 7D, 7H, 8S]] ");
+        evaluateDiscards(agent);
+        agent.reportDiscard(0, getCard("8S"));
+
+        agent.startGame(0, 1, getCards("6C, 4H, 3D, AD, 6H, QC, KH, JS, 4D, 5S"));
+        agent.reportDraw(1, getCard("2H"));
+        agent.reportDiscard(1, getCard("9S"));
+
+        agent.reportDraw(0, getCard("5C"));
+        agent.reportDiscard(0, getCard("KH"));
+
+        agent.reportDraw(1, null); // unseen TD
+        agent.reportDiscard(1, getCard("8C"));
+
+        agent.reportDraw(0, getCard("8S"));
+        System.out.println("\nScenario 3 (page 2 of analysis)");
+        System.out.println("[AD, 3D, 4H, 4D, 5C, 5S, 6C, 6H, 8S, JS, QC]");
+        evaluateDiscards(agent);
+        agent.reportDiscard(0, getCard("JS"));
+
+        agent.startGame(0, 0, getCards("JS, TD, AD, 7S, 3C, KC, TS, 9H, QS, 2S"));
+
+        agent.reportDraw(0, getCard("8H"));
+        agent.reportDiscard(0, getCard("KC"));
+
+        agent.reportDraw(1, getCard("KC"));
+        agent.reportDiscard(1, getCard("JD"));
+
+        agent.reportDraw(0, getCard("9C"));
+        agent.reportDiscard(0, getCard("TD"));
+
+        agent.reportDraw(1, null); // unseen 4C
+        agent.reportDiscard(1, getCard("KS"));
+
+        agent.reportDraw(0, getCard("KS"));
+        System.out.println("\nScenario 4 (page 3 of analysis)");
+        System.out.println("[[TS, JS, QS, KS], [AD, 2S, 3C, 7S, 8H, 9C, 9H]]");
+        evaluateDiscards(agent);
+        agent.reportDiscard(0, getCard("9C"));
+
+        agent.startGame(0, 0, getCards("AD, QD, 3S, 2D, 4S, 4C, QH, 8D, JS, 2S"));
+        agent.reportDiscard(1, getCard("7S"));
+
+        agent.reportDraw(1, null); // unseen 9S
+        agent.reportDiscard(1, getCard("TD"));
+
+        agent.reportDraw(0, getCard("JH"));
+        agent.reportDiscard(0, getCard("QD"));
+
+        agent.reportDraw(1, null); // unseen 2C
+        agent.reportDiscard(1, getCard("8S"));
+
+        agent.reportDraw(0, getCard("8S"));
+        System.out.println("\nScenario 5 (page 3 of analysis)");
+        System.out.println("[[2S, 3S, 4S], [AD, 2D, 4C, 8D, 8S, JH, JS, QH]]");
+        evaluateDiscards(agent);
+        agent.reportDiscard(0, getCard("QH"));
+
+        agent.reportDraw(1, null); // unseen QC
+        agent.reportDiscard(1, getCard("QC"));
+
+        agent.reportDraw(0, getCard("KC"));
+        agent.reportDiscard(0, getCard("KC"));
+
+        agent.reportDraw(1, null); // unseen 8H
+        agent.reportDiscard(1, getCard("7D"));
+
+        agent.reportDraw(0, getCard("7H"));
+        System.out.println("\nScenario 6 (page 3 of analysis)");
+        System.out.println("[[2S, 3S, 4S], [AD, 2D, 4C, 7H, 8S, 8D, JS, JH]]");
+        evaluateDiscards(agent);
+
+
+        agent.startGame(0,0,getCards("6H, TD, 8C, 6C, TH, 7H, 7D, 2C, KD, JD"));
+
+        agent.reportDiscard(1, getCard("9H"));
+
+        agent.reportDraw(1, null); // unseen 3H
+        agent.reportDiscard(1, getCard("QS"));
+
+        agent.reportDraw(0, getCard("9C"));
+        agent.reportDiscard(0, getCard("KD"));
+
+        agent.reportDraw(1, null); // unseen AD
+        agent.reportDiscard(1, getCard("JH"));
+
+        agent.reportDraw(0, getCard("KH"));
+        agent.reportDiscard(0, getCard("KH"));
+
+        agent.reportDraw(1, null); // unseen JS
+        agent.reportDiscard(1, getCard("8H"));
+
+        agent.reportDraw(0, getCard("8H"));
+        System.out.println("\nScenario 6 (page 3 of analysis)");
+        System.out.println("[[6H, 7H, 8H], [2C, 6C, 7D, 8C, 9C, TH, TD, JD]]");
+        evaluateDiscards(agent);
+
+        agent.reportDiscard(0, getCard("JD"));
+
+
+        agent.startGame(0,0,getCards("AS, 2C, 3D, 4H, 5S, 6C, 7D, 8H, 9C, QS, QC"));
+        System.out.println("\nScenario Duo");
+        System.out.println("AS, 2C, 3D, 4H, 5S, 6C, 7D, 8H, 9C, QS, QC");
+        evaluateDiscards(agent);
+
+        agent.startGame(0,0,getCards("AS, 2C, 3D, 4H, 5S, 6C, 7D, 8H, JC, JS, QC"));
+        System.out.println("\nScenario Trio");
+        System.out.println("AS, 2C, 3D, 4H, 5S, 6C, 7D, 8H, JC, JS, QC");
+        evaluateDiscards(agent);
+
+
+        agent.startGame(0,0,getCards("AS, 2C, 3D, 4H, 5S, 6C, 7D, JC, JS, QC, QS"));
+        System.out.println("\nScenario Quad");
+        System.out.println("AS, 2C, 3D, 4H, 5S, 6C, 7D, JC, JS, QC, QS");
+        evaluateDiscards(agent);
+
+        agent.startGame(0,0,getCards("AS, 2S, 3S, 4H, 5H, 6H, 7H, JC, JS, JD, JH"));
+        System.out.println("\nAll in melds");
+        System.out.println("AS, 2S, 3S, 4H, 5H, 6H, 7H, JC, JS, JD, JH");
+        evaluateDiscards(agent);
+    }
+
+    static void evaluateDiscards(GinRummyAndTonic_v6 agent) {
+        // Simulate x turns into the future
+        ArrayList<DiscardMetric> metrics = getDiscardMetrics(agent.state);
+
+        for (int i = 0; i < metrics.size(); i++) {
+            System.out.print(metrics.get(i).discard);
+            System.out.println("\t" + metrics.get(i).score);
+        }
+
+    }
+
+    void updateOpponentStats(ArrayList<Card> opponentCards) {
+        synchronized(GinRummyAndTonic_v6.class) {
+            ArrayList<DiscardMetric> metrics = getDiscardMetrics(state);
+
+            ArrayList<ArrayList<ArrayList<Card>>> bestMeldSets = GinRummyUtil.cardsToBestMeldSets(opponentCards);
+            int oppDeadwood = bestMeldSets.isEmpty() ? GinRummyUtil.getDeadwoodPoints(opponentCards)
+                    : GinRummyUtil.getDeadwoodPoints(bestMeldSets.get(0), opponentCards);
+
+            for (DiscardMetric dm: metrics) {
+                double oppEv = dm.getExpectedOpponentImprovement(state);
+                opponentCards.add(dm.discard);
+                int oppNewDeadwood = estimateBestDeadwoodAfterDiscard(opponentCards);
+                double improvement = oppDeadwood - oppNewDeadwood;
+                int ndx = dm.getIndex();
+                opponentExpectedImprovement[ndx] = (opponentExpectedImprovement[ndx] * opponentCounts[ndx] + improvement) / (opponentCounts[ndx]+1);
+                opponentCounts[ndx]++;
+                opponentCards.remove(opponentCards.size() - 1);
+            }
+        }
+    }
+
+    static synchronized void loadOpponentStats() {
+        try {
+            Scanner sc = new Scanner(new File("opponentEV.txt"));
+            int ndx = sc.nextInt();
+            while (ndx != -1) {
+                opponentExpectedImprovement[ndx] = sc.nextDouble();
+                ndx = sc.nextInt();
+            }
+            while (sc.hasNext()) {
+                ndx = sc.nextInt();
+                opponentCounts[ndx] = sc.nextInt();
+
+            }
+	    	/*
+	    	int n = sc.nextInt();
+	    	for (int i = 0; i < n; i++) {
+	    		opponentExpectedImprovement[i] = sc.nextDouble();
+	    	}
+	    	n = sc.nextInt();
+	    	for (int i = 0; i < n; i++) {
+	    		opponentCounts[i] = sc.nextInt();
+	    	}*/
+            sc.close();
+        }
+        catch (Exception e) {
+            System.err.println("Error loading stats " + e);
+        }
+    }
+
+    static synchronized void writeOpponentStats() {
+        try {
+            PrintWriter pw = new PrintWriter("opponentEV.txt");
+            for (int i = 0; i < opponentExpectedImprovement.length; i++) {
+                if (opponentExpectedImprovement[i] > 0) {
+                    pw.println(i + "\t" + opponentExpectedImprovement[i]);
+                }
+            }
+            pw.println(-1);
+            for (int i = 0; i < opponentCounts.length; i++) {
+                if (opponentCounts[i] > 0) {
+                    pw.println(i + "\t" + opponentCounts[i]);
+                }
+            }
+            pw.close();
+        }
+        catch (Exception e) {
+            System.err.println("Error writing stats " + e.getMessage());
+        }
+    }
+}

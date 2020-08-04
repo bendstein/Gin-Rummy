@@ -323,8 +323,9 @@ public class GinRummyGame {
 
 		setPlayVerbose(false);
 		int numGames = 50;
-		p1 = new GinRummyAndTonic_v3();
-		GinRummyPlayer[] p0s = new GinRummyPlayer[]{new GinRummyAndTonic_v2(),
+		p1 = new GinRummyAndTonic_v6();
+		GinRummyPlayer[] p0s = new GinRummyPlayer[]{
+				new GinRummyAndTonic_v2(), new GinRummyAndTonic_v5(),
 				new Agent01(), new Agent02(), new Agent03(),
 				new Agent04(), new Agent05(), new Agent06(),
 				new Agent07(), new Agent08(), new Agent09(),
