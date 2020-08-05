@@ -10,8 +10,8 @@ import java.util.stream.Collectors;
 public class GinRummyAndTonic_v6 implements GinRummyPlayer {
 
     // TODO: Tune these parameters
-    static int MAX_DISCARDS_TO_CONSIDER = 6;
-    static int MAX_DEADWOOD_DIFFERENCE = 8;
+    static int MAX_DISCARDS_TO_CONSIDER = 5;
+    static int MAX_DEADWOOD_DIFFERENCE = 9;
     static int EXTRAPOLATE_TO_TURNS = 8;
     static boolean USE_MODIFIED_DRAW = true;
     static double DEADWOOD_W = 1.65;
@@ -3799,12 +3799,10 @@ public class GinRummyAndTonic_v6 implements GinRummyPlayer {
 
     @Override
     public Card getDiscard() {
-
         ArrayList<DiscardMetric> metrics = getDiscardMetrics(state);
         metrics.sort((DiscardMetric dm1, DiscardMetric dm2) -> dm1.score < dm2.score?-1:dm1.score>dm2.score?1:0);
         return metrics.get(0).discard;
     }
-
 
     @Override
     public void reportDiscard(int playerNum, Card discardedCard) {
@@ -4503,6 +4501,19 @@ public class GinRummyAndTonic_v6 implements GinRummyPlayer {
         }
 
         // <editor-fold desc="Getters and Setters">
+
+        public void setSeen(long seen) {
+            this.seen = seen;
+        }
+
+        public void setTurn(int turn) {
+            this.turn = turn;
+        }
+
+        public void setNum_remaining(int num_remaining) {
+            this.num_remaining = num_remaining;
+        }
+
         public int getTurn() {
             return turn;
         }
@@ -6781,7 +6792,7 @@ public class GinRummyAndTonic_v6 implements GinRummyPlayer {
 
     static synchronized void loadOpponentStats() {
         try {
-            Scanner sc = new Scanner(new File("opponentEV.txt"));
+            Scanner sc = new Scanner(new File("C:\\Users\\benjo\\Documents\\repos\\ginrummy\\src\\opponentEV.txt"));
             int ndx = sc.nextInt();
             while (ndx != -1) {
                 opponentExpectedImprovement[ndx] = sc.nextDouble();
@@ -6810,7 +6821,7 @@ public class GinRummyAndTonic_v6 implements GinRummyPlayer {
 
     static synchronized void writeOpponentStats() {
         try {
-            PrintWriter pw = new PrintWriter("opponentEV.txt");
+            PrintWriter pw = new PrintWriter("C:\\Users\\benjo\\Documents\\repos\\ginrummy\\src\\opponentEV.txt");
             for (int i = 0; i < opponentExpectedImprovement.length; i++) {
                 if (opponentExpectedImprovement[i] > 0) {
                     pw.println(i + "\t" + opponentExpectedImprovement[i]);

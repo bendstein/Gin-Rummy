@@ -10,17 +10,73 @@ public class GameState {
 	private static final int HAND_SIZE = 10;
 	private static final Random prng = new Random();
 	
-	private static class Player {
+	public static class Player {
 		long cards = 0; // Cards in our hand
 		long seenCards = 0; // Cards that have been seen
 		long oppCards = 0; // Cards we know opponent holds
+		long discard = 0;
+		long forwent = 0;
+		GinRummyAndTonic_v6.State state2;
 		
 		public Player() {}
 		public Player(Player other) {
 			cards = other.cards;
 			seenCards = other.seenCards;
 			oppCards = other.oppCards;
+			state2 = other.state2;
+			discard = other.discard;
+			forwent = 0;
 		}
+
+		//<editor-fold desc="Getters and Setters">
+		public long getCards() {
+			return cards;
+		}
+
+		public void setCards(long cards) {
+			this.cards = cards;
+		}
+
+		public long getSeenCards() {
+			return seenCards;
+		}
+
+		public void setSeenCards(long seenCards) {
+			this.seenCards = seenCards;
+		}
+
+		public long getOppCards() {
+			return oppCards;
+		}
+
+		public void setOppCards(long oppCards) {
+			this.oppCards = oppCards;
+		}
+
+		public long getDiscard() {
+			return discard;
+		}
+
+		public void setDiscard(long discard) {
+			this.discard = discard;
+		}
+
+		public long getForwent() {
+			return forwent;
+		}
+
+		public void setForwent(long forwent) {
+			this.forwent = forwent;
+		}
+
+		public GinRummyAndTonic_v6.State getState2() {
+			return state2;
+		}
+
+		public void setState2(GinRummyAndTonic_v6.State state2) {
+			this.state2 = state2;
+		}
+		//</editor-fold>
 	}
 	
 	private Player[] players;
@@ -54,7 +110,9 @@ public class GameState {
 
 		faceUpCard = deck[topCard++];
 		players[0].seenCards |= faceUpCard;
-		players[1].seenCards |= faceUpCard;		
+		players[1].seenCards |= faceUpCard;
+
+		generateGRTStates();
 	}
 
 	/**
@@ -69,6 +127,8 @@ public class GameState {
 		this.decisionPoint = lastState.decisionPoint + 1;
 		deck = lastState.deck;
 		previous = lastState;
+
+		generateGRTStates();
 	}
 
 	/**
@@ -86,6 +146,8 @@ public class GameState {
 		this.decisionPoint = decisionPoint;
 		deck = lastState.deck;
 		previous = lastState;
+
+		generateGRTStates();
 	}
 	
 	/**
@@ -93,6 +155,10 @@ public class GameState {
 	 */
 	public int getCurrentPlayer() {
 		return (decisionPoint / 3) % 2;
+	}
+
+	public Player getCurrentPlayerObject() {
+		return players[getCurrentPlayer()];
 	}
 
 	/**
@@ -177,9 +243,19 @@ public class GameState {
 	public void addFaceUpCardToHand() {
 		int player = getCurrentPlayer();
 		int opponent = player==0?1:0;
+
 		players[player].cards |= faceUpCard;
+		players[opponent].state2.addToHand(GinRummyAndTonic_v6.MyGinRummyUtil.bitstringToIDArray(faceUpCard)[0]);
+		//--
+
 		players[player].seenCards |= faceUpCard;
-		players[opponent].oppCards |= faceUpCard; 
+		players[player].state2.addToSeen(GinRummyAndTonic_v6.MyGinRummyUtil.bitstringToIDArray(faceUpCard)[0]);
+		players[opponent].state2.addToSeen(GinRummyAndTonic_v6.MyGinRummyUtil.bitstringToIDArray(faceUpCard)[0]);
+		//--
+
+		players[opponent].oppCards |= faceUpCard;
+		players[opponent].state2.addToOppHand(GinRummyAndTonic_v6.MyGinRummyUtil.bitstringToIDArray(faceUpCard)[0]);
+
 	}
 
 	/**
@@ -187,9 +263,22 @@ public class GameState {
 	 */
 	public void addFaceDownCardToHand() {
 		long card = deck[topCard];
+
 		topCard += 1;
+		players[getCurrentPlayer()].state2.increaseTopCard();
+		players[getCurrentPlayer()==0?1:0].state2.increaseTopCard();
+		//--
+
 		players[getCurrentPlayer()].cards |= card;
+		players[getCurrentPlayer()].state2.addToHand(GinRummyAndTonic_v6.MyGinRummyUtil.bitstringToIDArray(card)[0]);
+		//--
+
 		players[getCurrentPlayer()].seenCards |= card;
+		players[getCurrentPlayer()].state2.addToSeen(GinRummyAndTonic_v6.MyGinRummyUtil.bitstringToIDArray(faceUpCard)[0]);
+		//--
+
+		players[getCurrentPlayer()==0?1:0].state2.addToOppForwent(GinRummyAndTonic_v6.MyGinRummyUtil.bitstringToIDArray(card)[0]);
+
 	}
 
 	/**
@@ -202,9 +291,23 @@ public class GameState {
 		int opponent = player==0?1:0;
 				
 		players[player].cards ^= card;
+		players[player].discard =
+				GinRummyAndTonic_v6.MyGinRummyUtil.add(players[player].discard, GinRummyAndTonic_v6.MyGinRummyUtil.bitstringToIDArray(card)[0]);
+		//--
+
 		faceUpCard = card;
+		players[player].state2.setFaceUp(GinRummyAndTonic_v6.MyGinRummyUtil.bitstringToIDArray(card)[0]);
+		players[opponent].state2.setFaceUp(GinRummyAndTonic_v6.MyGinRummyUtil.bitstringToIDArray(card)[0]);
+		//--
+
 		players[opponent].seenCards |= card;
+		players[opponent].state2.addToSeen(GinRummyAndTonic_v6.MyGinRummyUtil.bitstringToIDArray(card)[0]);
+		//--
+
 		players[opponent].oppCards &= ~card;
+		players[opponent].state2.addToOppHand(GinRummyAndTonic_v6.MyGinRummyUtil.bitstringToIDArray(card)[0]);
+		players[opponent].state2.addToOppDiscard(GinRummyAndTonic_v6.MyGinRummyUtil.bitstringToIDArray(card)[0]);
+
 	}
 	
 	/**
@@ -230,6 +333,32 @@ public class GameState {
 	 */
 	public GameState getPreviousState() {
 		return previous;
+	}
+
+	public void generateGRTStates() {
+		for(int i = 0; i < players.length; i++) {
+			Player p = players[i];
+			GinRummyAndTonic_v6.State s = new GinRummyAndTonic_v6.State(new ArrayList<>());
+			s.setFaceUp(GinRummyAndTonic_v6.MyGinRummyUtil.bitstringToIDArray(faceUpCard)[0]);
+			s.setFaceUpPrevious(previous == null? -1 : GinRummyAndTonic_v6.MyGinRummyUtil.bitstringToIDArray(previous.faceUpCard)[0]);
+			s.setHand(p.cards);
+			s.setOppDiscard(getOther(i).discard);
+			s.setOppForwent(getOther(i).forwent);
+			s.setTopCard(topCard);
+			s.setNum_remaining(0);
+			s.setSeen(p.seenCards);
+			s.setOppHand(p.oppCards);
+			s.setTurn(previous == null? 0 : previous.players[i].state2.getTurn());
+			p.state2 = s;
+		}
+	}
+
+	public Player getOther(int i) {
+		for(int i1 = 0; i1 < players.length; i++) {
+			if(i1 != i) return players[i];
+		}
+
+		return null;
 	}
 	
 	@Override 

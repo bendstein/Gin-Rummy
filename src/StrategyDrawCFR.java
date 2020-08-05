@@ -46,7 +46,7 @@ public class StrategyDrawCFR extends StrategyDraw {
 		 * If improvement in deadwood from drawing face-up is at least 6, and is higher than the
 		 * expected improvement in deadwood for drawing face-down, draw the face-up.
 		 */
-		if(improvement >= 6 && improvement > evFaceDown)
+		if(improvement >= 6 && improvement - evFaceDown >= 2)
 			return new ActionDraw[]{new ActionDraw(true, 1.0, null)};
 
 		/*
@@ -57,7 +57,7 @@ public class StrategyDrawCFR extends StrategyDraw {
 		/*
 		 * If we would consider discarding the face-up card, we probably shouldn't pick it up.
 		 */
-		long preferred = MyGinRummyUtil.findHighestDiscards(newCards, -1, -1, 1);
+		long preferred = MyGinRummyUtil.findHighestDiscards(newCards, -1, -1, 2);
 		if(MyGinRummyUtil.contains(preferred, state.getFaceUpCardAsObject().getId()))
 			return new ActionDraw[]{new ActionDraw(false, 1.0, null)};
 

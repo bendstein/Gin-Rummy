@@ -7,11 +7,11 @@ public class Driver {
 	public static void main(String[] args) throws FileNotFoundException, InterruptedException {
 		final int TOTAL_ROUNDS = 50;
 		final int TRAINING_GAMES_PER_ROUND = 1_000_000;
-		final int EVALUATION_GAMES_PER_ROUND = 10_000;
+		final int EVALUATION_GAMES_PER_ROUND = 100_000;
         final int CONCURRENT_THREADS = 16;
         
 		Player basePlayer = new Player(new StrategyDraw(false), new StrategyDiscard(false), new StrategyKnock(false));
-		Player cfrPlayer = new Player(new StrategyDrawCFR(false), new StrategyDiscardCFR(false), new StrategyKnockCFR(false));
+		Player cfrPlayer = new Player(new StrategyDrawCFR(false), new StrategyDiscardNew(false), new StrategyKnockCFR(false));
 		
 		for (int round = 0; round < TOTAL_ROUNDS; round++) {
 			// Train for a while
