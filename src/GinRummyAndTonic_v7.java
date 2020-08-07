@@ -1,20 +1,32 @@
 import java.io.File;
 import java.io.PrintWriter;
-import java.util.*;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Random;
+import java.util.Scanner;
+import java.util.Set;
+import java.util.TreeMap;
 import java.util.stream.Collectors;
+
 
 
 /**
  * Class containing the player
  */
-public class GinRummyAndTonic_v6 implements GinRummyPlayer {
+public class GinRummyAndTonic_v7 implements GinRummyPlayer {
 
     // TODO: Tune these parameters
     static int MAX_DISCARDS_TO_CONSIDER = 5;
     static int MAX_DEADWOOD_DIFFERENCE = 9;
     static int EXTRAPOLATE_TO_TURNS = 8;
     static boolean USE_MODIFIED_DRAW = false;
-    static double DEADWOOD_W = 1.65;
+    static double DEADWOOD_W = 1.7;
+    static double DEADWOOD_W2 = 1.7;
+    static double DEADWOOD_W3 = 1.00;
+    static int MINIMUM_OPPONENT_OBSERVATIONS = 100;
 
     final static int[] countTurns = {18149,18332,18169,17748,17389,16822,15964,14673,13021,11074,8983,7022,5213,3705,2483,1536,755,223,33,4,0};
 
@@ -55,7 +67,7 @@ public class GinRummyAndTonic_v6 implements GinRummyPlayer {
     private ArrayList<ArrayList<Card>> oppMelds;
     // </editor-fold>
 
-    public GinRummyAndTonic_v6() {
+    public GinRummyAndTonic_v7() {
         HashMap<String, Double> knockStrat = new HashMap<String, Double>() {
             {
                 put("9_49_9", 1.000);
@@ -3902,10 +3914,12 @@ public class GinRummyAndTonic_v6 implements GinRummyPlayer {
 
     @Override
     public Card getDiscard() {
+
         ArrayList<DiscardMetric> metrics = getDiscardMetrics(state);
         metrics.sort((DiscardMetric dm1, DiscardMetric dm2) -> dm1.score < dm2.score?-1:dm1.score>dm2.score?1:0);
         return metrics.get(0).discard;
     }
+
 
     @Override
     public void reportDiscard(int playerNum, Card discardedCard) {
@@ -3954,8 +3968,6 @@ public class GinRummyAndTonic_v6 implements GinRummyPlayer {
             double prob = generalStrategy.getKnockAt(k);
             if(deadwood == 0 || random.nextDouble() < prob) {
                 //Select the meld configuration to submit.
-
-                /*
                 ArrayList<ArrayList<Card>> bestMeldSet = null;
                 double minExpectedLayoff = Double.MAX_VALUE;
                 for(ArrayList<ArrayList<Card>> meldSet : bestMeldSets) {
@@ -3981,15 +3993,11 @@ public class GinRummyAndTonic_v6 implements GinRummyPlayer {
                         }
                     }
 
-                 */
-
                     /*
                      * The sum of the deadwood of each layoff card * the probability that the opponent has said card
                      * is expectedLayoff. If expectedLayoff < minExpectedLayoff, it is the new minimum, so assign
                      * bestMeldSet to the current meld set. In the end, return the meld set with the lowest expectedLayoff.
                      */
-
-                    /*
                     double expectedLayoff = 0d;
                     for(Card card : layoff) {
                         //If the card is in an opponent meld, we don't expect them to try to lay it off.
@@ -4004,10 +4012,6 @@ public class GinRummyAndTonic_v6 implements GinRummyPlayer {
                     }
 
                 }
-
-                     */
-
-                ArrayList<ArrayList<Card>> bestMeldSet = MyGinRummyUtil.getBestBestMeldSet(state);
 
                 return bestMeldSet;
             }
@@ -4604,19 +4608,6 @@ public class GinRummyAndTonic_v6 implements GinRummyPlayer {
         }
 
         // <editor-fold desc="Getters and Setters">
-
-        public void setSeen(long seen) {
-            this.seen = seen;
-        }
-
-        public void setTurn(int turn) {
-            this.turn = turn;
-        }
-
-        public void setNum_remaining(int num_remaining) {
-            this.num_remaining = num_remaining;
-        }
-
         public int getTurn() {
             return turn;
         }
@@ -6423,10 +6414,16 @@ public class GinRummyAndTonic_v6 implements GinRummyPlayer {
 
         Card discard;           // The card to be discarded
         int immediateDeadwood; 	// The deadwood that would remain in the hand if the card were discarded
+        double evDeadwood1;     // EV of deadwood after 1 turn
         ArrayList<Card> hand;   // The current hand without this discard
         boolean alwaysMelded;   // Whether this card is in every meld in the current hand
         double score; // The value of this discard (low numbers are better)
-        ArrayList<Integer> deadwood = new ArrayList<>(); // deadwood after one turn if we discard this card
+
+        int deadwood_1_size;
+        TreeMap<Integer,Integer> deadwood_1 = new TreeMap<>(); // deadwood counts after one turn if we discard this card
+
+        int deadwood_2_size;
+        TreeMap<Integer,Integer> deadwood_2 = new TreeMap<>(); // deadwood counts after two turn if we discard this card
 
         // Stats about opponents hand
         boolean opponentStatsCalculated;
@@ -6520,10 +6517,10 @@ public class GinRummyAndTonic_v6 implements GinRummyPlayer {
 
         double getExpectedOpponentImprovement(State state) {
             if (!opponentStatsCalculated) calculateOpponentStats(state);
-            if (opponentCounts[getIndex()] >= 100)
+            if (opponentCounts[getIndex()] >= MINIMUM_OPPONENT_OBSERVATIONS)
                 return opponentExpectedImprovement[getIndex()];
             else
-                return 0.0;
+                return opponentExpectedImprovement[getIndex()] * opponentCounts[getIndex()] / MINIMUM_OPPONENT_OBSERVATIONS;
         }
     }
 
@@ -6628,23 +6625,6 @@ public class GinRummyAndTonic_v6 implements GinRummyPlayer {
         ArrayList<DiscardMetric> metrics = getPossibleDiscards(state);
         if (metrics.size() == 1) return metrics;
 
-        for (DiscardMetric dm : metrics) {
-            int count = 0;		// count of total draw cards
-            double goodWeight = 0;  // count of draw cards that I would want to pick up face up
-            double totalWeight = 0;  // count of draw cards that I would want to pick up face up
-            int[] deadwood = new int[52]; // deadwood after each draw card
-            for (int c = 0; c < 52; c++) {
-                long cardBitstring = 1L << c;
-                if ((cardBitstring & state.getUnseen()) != 0) {
-                    count++;
-                    Card card = Card.getCard(c);
-                    dm.hand.add(card);
-                    dm.deadwood.add(estimateBestDeadwoodAfterDiscard(dm.hand));
-                    dm.hand.remove(dm.hand.size() - 1);
-                }
-            }
-        }
-
         double[] probTurns = new double[EXTRAPOLATE_TO_TURNS + 1];
         double sum = 0;
         if (state.getTurn() + 1 >= countTurns.length) {
@@ -6664,27 +6644,128 @@ public class GinRummyAndTonic_v6 implements GinRummyPlayer {
             probTurns[EXTRAPOLATE_TO_TURNS] = 1 - sum;
         }
 
-        // Score each discard
+        // Estimate ev of deadwood after 1 turn
+        for (DiscardMetric dm : metrics) {
+            for (int c = 0; c < 52; c++) {
+                long cardBitstring = 1L << c;
+                if ((cardBitstring & state.getUnseen()) != 0) {
+                    Card card = Card.getCard(c);
+                    dm.hand.add(card);
+                    int deadwood = estimateBestDeadwoodAfterDiscard(dm.hand);
+                    dm.deadwood_1.put(deadwood, dm.deadwood_1.getOrDefault(deadwood, 0) + 1);
+                    dm.deadwood_1_size++;
+                    dm.hand.remove(dm.hand.size() - 1);
+                }
+            }
+        }
+
+        // Score each discard for immediate deadwood
         for (DiscardMetric dm: metrics) {
             dm.score = probTurns[0] * dm.immediateDeadwood;
+            dm.score += dm.getExpectedOpponentImprovement(state);
 
             int scenariosCounted = 0;
+            Integer lastKey = Integer.MIN_VALUE;
+            int lastKeyRemaining = 0;
             double dwSum = 0;
-            Collections.sort(dm.deadwood);
-            for (int i = EXTRAPOLATE_TO_TURNS; i >= 1; i--) {
-                double cardsSeen = i * DEADWOOD_W;
 
-                while (scenariosCounted < Math.max(1.0, dm.deadwood.size() /cardsSeen)) {
-                    dwSum += dm.deadwood.get(scenariosCounted);
-                    scenariosCounted++;
+            if (EXTRAPOLATE_TO_TURNS >= 1) {
+
+                double scenariosToCount = Math.max(1.0, dm.deadwood_1_size /(1 * DEADWOOD_W));
+                while (scenariosCounted < scenariosToCount) {
+                    if (lastKeyRemaining == 0) {
+                        lastKey = dm.deadwood_1.higherKey(lastKey);
+                        lastKeyRemaining = dm.deadwood_1.get(lastKey);
+                    }
+                    int count = Math.min((int) Math.ceil(scenariosToCount - scenariosCounted), lastKeyRemaining);
+                    dwSum += count * lastKey;
+                    lastKeyRemaining -= count;
+                    scenariosCounted += count;
                 }
+                dm.evDeadwood1 = dwSum / scenariosCounted;
+                dm.score += (1 - probTurns[0]) * dm.evDeadwood1;
+            }
+        }
 
-                dm.score += probTurns[i] * (dwSum / scenariosCounted);
+        metrics.sort((dm1,dm2) -> dm1.score < dm2.score ? -1: dm1.score > dm2.score ? 1 : 0 );
+
+        // Remove less promising discards - If a card is the same suit as a better discard or is adjacent to a
+        // better discard, we will remove it from consideration
+        for (int j = 1; j < metrics.size(); j++) {
+            boolean remove = false;
+            for (int i = 0; !remove && i < j; i++) {
+                if (metrics.get(i).discard.getRank() == metrics.get(j).discard.getRank() ||
+                        (metrics.get(i).discard.getSuit() == metrics.get(j).discard.getSuit() &&
+                                Math.abs(metrics.get(i).discard.getRank() - metrics.get(j).discard.getRank()) <= 1)) remove = true;
+            }
+            if (remove) {
+                metrics.remove(j);
+                j--;
+            }
+        }
+
+        // Estimate ev of deadwood after 1 turn
+        for (DiscardMetric dm : metrics) {
+            for (int c = 0; c < 52; c++) {
+                long cardBitstring = 1L << c;
+                if ((cardBitstring & state.getUnseen()) != 0) {
+                    Card card = Card.getCard(c);
+                    dm.hand.add(card);
+                    for (int c2 = 0; c2 < 52; c2++) {
+                        long card2Bitstring = 1L << c2;
+                        if ((card2Bitstring & state.getUnseen()) != 0) {
+                            Card card2 = Card.getCard(c2);
+                            dm.hand.add(card2);
+                            int deadwood = estimateBestDeadwoodAfterDiscard(dm.hand);
+                            dm.deadwood_2.put(deadwood, dm.deadwood_2.getOrDefault(deadwood, 0) + 1);
+                            dm.deadwood_2_size++;
+                            dm.hand.remove(dm.hand.size() - 1);
+                        }
+                    }
+                    dm.hand.remove(dm.hand.size() - 1);
+                }
+            }
+        }
+        // Score each discard for immediate deadwood
+        for (DiscardMetric dm: metrics) {
+            dm.score = probTurns[0] * dm.immediateDeadwood;
+            dm.score = probTurns[1] * dm.evDeadwood1;
+            dm.score += dm.getExpectedOpponentImprovement(state);
+
+            // Calc turn 2 EV deadwood
+            int scenariosCounted = 0;
+            Integer lastKey = Integer.MIN_VALUE;
+            int lastKeyRemaining = 0;
+            double dwSum = 0;
+            double scenariosToCount = Math.max(1.0, dm.deadwood_2_size / DEADWOOD_W2);
+            while (scenariosCounted < scenariosToCount) {
+                if (lastKeyRemaining == 0) {
+                    lastKey = dm.deadwood_2.higherKey(lastKey);
+                    if (lastKey == null) break;
+
+                    lastKeyRemaining = dm.deadwood_2.get(lastKey);
+                }
+                int count = Math.min((int) Math.ceil(scenariosToCount - scenariosCounted), lastKeyRemaining);
+                dwSum += count * lastKey;
+                lastKeyRemaining -= count;
+                scenariosCounted += count;
             }
 
-            double oppEv = dm.getExpectedOpponentImprovement(state);
-            dm.score += oppEv;
+            if (scenariosCounted < scenariosToCount) {
+                int count = (int) Math.ceil(scenariosToCount - scenariosCounted);
+                dwSum += count * dm.evDeadwood1;
+                scenariosCounted += count;
+            }
+            double evTurn2 = dwSum / scenariosCounted;
+            dm.score += probTurns[2] * evTurn2;
+
+            for (int i = 3; i <= EXTRAPOLATE_TO_TURNS; i++) {
+
+                dm.score += probTurns[i] * Math.max(0.0,dm.evDeadwood1 - (dm.evDeadwood1 - evTurn2) * (i-2) * DEADWOOD_W3);
+            }
+
         }
+
         return metrics;
     }
 
@@ -6713,7 +6794,7 @@ public class GinRummyAndTonic_v6 implements GinRummyPlayer {
 
     // Test routine
     public static void main(String[] args) {
-        GinRummyAndTonic_v6 agent = new GinRummyAndTonic_v6();
+        GinRummyAndTonic_v7 agent = new GinRummyAndTonic_v7();
         agent.startGame(0,0,getCards("JD, 8S, QC, AS, 3H, 2D, 7D, KS, 6C, 4C"));
 
         agent.reportDraw(0, getCard("6H"));
@@ -6861,7 +6942,7 @@ public class GinRummyAndTonic_v6 implements GinRummyPlayer {
         evaluateDiscards(agent);
     }
 
-    static void evaluateDiscards(GinRummyAndTonic_v6 agent) {
+    static void evaluateDiscards(GinRummyAndTonic_v7 agent) {
         // Simulate x turns into the future
         ArrayList<DiscardMetric> metrics = getDiscardMetrics(agent.state);
 
@@ -6873,7 +6954,7 @@ public class GinRummyAndTonic_v6 implements GinRummyPlayer {
     }
 
     void updateOpponentStats(ArrayList<Card> opponentCards) {
-        synchronized(GinRummyAndTonic_v6.class) {
+        synchronized(GinRummyAndTonic_v7.class) {
             ArrayList<DiscardMetric> metrics = getDiscardMetrics(state);
 
             ArrayList<ArrayList<ArrayList<Card>>> bestMeldSets = GinRummyUtil.cardsToBestMeldSets(opponentCards);

@@ -6791,7 +6791,7 @@ public class GinRummyAndTonic_v5 implements GinRummyPlayer {
 
     static synchronized void loadOpponentStats() {
         try {
-            Scanner sc = new Scanner(new File("opponentEV.txt.txt"));
+            Scanner sc = new Scanner(new File("src/opponentEV.txt"));
             int ndx = sc.nextInt();
             while (ndx != -1) {
                 opponentExpectedImprovement[ndx] = sc.nextDouble();
@@ -6820,7 +6820,7 @@ public class GinRummyAndTonic_v5 implements GinRummyPlayer {
 
     static synchronized void writeOpponentStats() {
         try {
-            PrintWriter pw = new PrintWriter("opponentEV.txt.txt");
+            PrintWriter pw = new PrintWriter("src/opponentEV.txt");
             for (int i = 0; i < opponentExpectedImprovement.length; i++) {
                 if (opponentExpectedImprovement[i] > 0) {
                     pw.println(i + "\t" + opponentExpectedImprovement[i]);

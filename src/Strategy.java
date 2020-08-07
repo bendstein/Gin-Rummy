@@ -91,6 +91,11 @@ public abstract class Strategy {
 	 * @param actions the actions to be taken
 	 */
 	private final void getLearnedStrategy(Action[] actions) {
+
+		/*
+		 * Add a count variable so that everytime an infoset is seen here, the count is incremented
+		 */
+
 		synchronized (sumStrategy) {
 			for (Action action: actions) {
 				if (action.infosetAndAction == null) {
