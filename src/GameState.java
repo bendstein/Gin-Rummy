@@ -16,7 +16,7 @@ public class GameState {
 		long oppCards = 0; // Cards we know opponent holds
 		long discard = 0;
 		long forwent = 0;
-		GinRummyAndTonic_v6.State state2;
+		GinRummyAndTonic_v10.State state2;
 		
 		public Player() {}
 		public Player(Player other) {
@@ -69,11 +69,11 @@ public class GameState {
 			this.forwent = forwent;
 		}
 
-		public GinRummyAndTonic_v6.State getState2() {
+		public GinRummyAndTonic_v10.State getState2() {
 			return state2;
 		}
 
-		public void setState2(GinRummyAndTonic_v6.State state2) {
+		public void setState2(GinRummyAndTonic_v10.State state2) {
 			this.state2 = state2;
 		}
 		//</editor-fold>
@@ -338,7 +338,7 @@ public class GameState {
 	public void generateGRTStates() {
 		for(int i = 0; i < players.length; i++) {
 			Player p = players[i];
-			GinRummyAndTonic_v6.State s = new GinRummyAndTonic_v6.State(new ArrayList<>());
+			GinRummyAndTonic_v10.State s = new GinRummyAndTonic_v10.State(new ArrayList<>());
 			s.setFaceUp(GinRummyAndTonic_v6.MyGinRummyUtil.bitstringToIDArray(faceUpCard)[0]);
 			s.setFaceUpPrevious(previous == null? -1 : GinRummyAndTonic_v6.MyGinRummyUtil.bitstringToIDArray(previous.faceUpCard)[0]);
 			s.setHand(p.cards);

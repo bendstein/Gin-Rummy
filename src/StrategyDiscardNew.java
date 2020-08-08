@@ -27,10 +27,10 @@ public class StrategyDiscardNew extends StrategyDiscard {
      */
     @Override
     public ActionDiscard[] getStrategy(GameState state) {
-        ArrayList<GinRummyAndTonic_v6.DiscardMetric> metrics =
-                GinRummyAndTonic_v6.getDiscardMetrics(state.getCurrentPlayerObject().state2);
-        metrics.sort((GinRummyAndTonic_v6.DiscardMetric dm1, GinRummyAndTonic_v6.DiscardMetric dm2) -> dm1.score < dm2.score?-1:dm1.score>dm2.score?1:0);
-        return new ActionDiscard[]{new ActionDiscard(GinRummyAndTonic_v6.MyGinRummyUtil.idsToBitstring(new int[]{metrics.get(0).discard.getId()}), 1.0, null)};
+        ArrayList<GinRummyAndTonic_v10.DiscardMetric> metrics =
+                GinRummyAndTonic_v10.getDiscardMetrics(state.getCurrentPlayerObject().state2);
+        metrics.sort((GinRummyAndTonic_v10.DiscardMetric dm1, GinRummyAndTonic_v10.DiscardMetric dm2) -> dm1.score < dm2.score?-1:dm1.score>dm2.score?1:0);
+        return new ActionDiscard[]{new ActionDiscard(GinRummyAndTonic_v10.MyGinRummyUtil.idsToBitstring(new int[]{metrics.get(0).discard.getId()}), 1.0, null)};
     }
 
 

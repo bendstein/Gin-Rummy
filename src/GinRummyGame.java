@@ -322,31 +322,27 @@ public class GinRummyGame {
 		// Multiple non-verbose games
 
 		setPlayVerbose(false);
-		int numGames = 250;
-		p1 = new GinRummyAndTonic_v7();
+		int numGames = 10;
+		p1 = new GinRummyAndTonic_v10();
 		GinRummyPlayer[] p0s = new GinRummyPlayer[]{
-				new GinRummyAndTonic_v2(), new GinRummyAndTonic_v5(),
-				new Agent01(), new Agent02(), new Agent03(), new Agent04(),
-				new Agent05(), new Agent06(), new Agent07(), new Agent08(),
-				new Agent09(), new Agent10(), new Agent11(), new Agent12(),
-				new Agent13(), new AgentPSHBase(), new AgentSimple()};
+				new AgentSimple()};
 
 
 		for(GinRummyPlayer p0 : p0s) {
 			int numP1Wins = 0;
 			GinRummyGame game = new GinRummyGame(p0, p1);
 
-			//long startMs = System.currentTimeMillis();
+			long startMs = System.currentTimeMillis();
 
 			for (int i = 0; i < numGames; i++)
 				numP1Wins += game.play();
 
-			//long totalMs = System.currentTimeMillis() - startMs;
+			long totalMs = System.currentTimeMillis() - startMs;
 
 			System.out.printf("P0 (%s) v. P1 (%s):\n", p0.getClass().getSimpleName(), p1.getClass().getSimpleName());
 			System.out.printf("\tWins:\n\t\tP0: %d (%f%s)\n\t\tP1: %d (%f%s)\n", numGames - numP1Wins, 100d * (double)(numGames - numP1Wins)/numGames, "%", numP1Wins, 100d * (double)(numP1Wins)/numGames, "%");
 
-			//System.out.printf("\t%d games played in %d ms.\n", numGames, totalMs);
+			System.out.printf("\t%d games played in %d ms.\n", numGames, totalMs);
 
 		}
 

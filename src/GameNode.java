@@ -7,7 +7,7 @@ public class GameNode {
 	public static double EPSILON = 0.6; // the proportion of time that we sample uniformly from all actions
 	// when sampling regret
 
-	public static double MAX_TURNS = 20; // To speed training, we limit the game to 10 turns each
+	public static double MAX_TURNS = 15; // To speed training, we limit the game to 10 turns each
 
 	public static class UtilityProbability {
 		double scaledUtility;  // [the utility at the sampled terminal node]/[probability we play to this node]
