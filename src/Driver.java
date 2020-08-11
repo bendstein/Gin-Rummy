@@ -80,19 +80,10 @@ public class Driver {
 			System.out.println("EV of CFR player vs. base player in " + (round+1) + " is " + util/EVALUATION_GAMES_PER_ROUND);
 
 			Files.createDirectories(Paths.get("Research/"));
-			cfrPlayer.getKnockStrategy().toFile(String.format("Research/GinBonus_%d_UndercutBonus_%d.txt", GinRummyUtil.GIN_BONUS, GinRummyUtil.UNDERCUT_BONUS));
+			if(cfrPlayer.getKnockStrategy() instanceof StrategyKnockResearch)
+				((StrategyKnockResearch) cfrPlayer.getKnockStrategy()).toExcel(String.format("Research/GinBonus_%d_UndercutBonus_%d.xlsx", GinRummyUtil.GIN_BONUS, GinRummyUtil.UNDERCUT_BONUS));
+
 		}
 
-		/*
-		System.out.println("\nEquilibrium Drawing Strategy");
-		System.out.println(cfrPlayer.getDrawStrategy().toString());		
-		
-		System.out.println("\nEquilibrium Knocking Strategy");
-		System.out.println(cfrPlayer.getKnockStrategy().toString());
-
-		System.out.println("\nEquilibrium Discarding Strategy");
-		System.out.println(cfrPlayer.getDiscardStrategy().toString());
-
-		 */
 	}
 }

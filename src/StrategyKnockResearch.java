@@ -1,7 +1,11 @@
-import java.io.FileNotFoundException;
-import java.io.PrintWriter;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.TreeSet;
+
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.xssf.usermodel.XSSFRow;
+import org.apache.poi.xssf.usermodel.XSSFSheet;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 public class StrategyKnockResearch extends StrategyKnock {
     private boolean verbose;
@@ -114,4 +118,77 @@ public class StrategyKnockResearch extends StrategyKnock {
         pw.close();
     }
 
+    public void toFile2(String fname) throws FileNotFoundException {
+        StringBuffer sb = new StringBuffer();
+
+        sb.append(total_visits/2).append("\n");
+        for(String s : infosets.descendingSet()) {
+            String key_k = s + "_y";
+            String key_n = s + "_n";
+
+            if(frequencies.getOrDefault(key_k, 0L) + frequencies.getOrDefault(key_n, 0L) == 0) continue;
+
+            String st = String.format("%s %.3f %d", s,
+                    sumStrategy.getOrDefault(key_k,1.0) / (sumStrategy.getOrDefault(key_k,1.0) + sumStrategy.getOrDefault(key_n,1.0)),
+                    frequencies.getOrDefault(key_k, 0L) + frequencies.getOrDefault(key_n, 0L));
+            sb.append(st).append("\n");
+        }
+
+        PrintWriter pw = new PrintWriter(fname);
+        pw.print(sb.toString());
+        pw.close();
+    }
+
+    public void toExcel(String fname)  throws IOException {
+        XSSFWorkbook workbook = new XSSFWorkbook();
+
+        XSSFSheet spreadsheet = workbook.createSheet(String.format("GIN_%d_UNDERCUT_%d", GinRummyUtil.GIN_BONUS, GinRummyUtil.UNDERCUT_BONUS));
+
+        XSSFRow xrow;
+        Cell xcell;
+
+        int row = 0;
+        for(String s : infosets.descendingSet()) {
+
+            String key_k = s + "_y";
+            String key_n = s + "_n";
+
+            if(frequencies.getOrDefault(key_k, 0L) + frequencies.getOrDefault(key_n, 0L) == 0) continue;
+
+            xrow = spreadsheet.createRow(row);
+            Object[] infoset = new Object[] {
+                s,
+                sumStrategy.getOrDefault(key_k,1.0) / (sumStrategy.getOrDefault(key_k,1.0) + sumStrategy.getOrDefault(key_n,1.0)),
+                frequencies.getOrDefault(key_k, 0L) + frequencies.getOrDefault(key_n, 0L)
+            };
+
+            int cell = 0;
+            for(Object i : infoset) {
+                xcell = xrow.createCell(cell);
+                if(i instanceof String)
+                    xcell.setCellValue((String)i);
+                else if(i instanceof Double)
+                    xcell.setCellValue((Double)i);
+                else if(i instanceof Integer)
+                    xcell.setCellValue((Integer)i);
+                else
+                    xcell.setCellValue(i.toString());
+
+                cell++;
+            }
+
+            row++;
+        }
+
+        xrow = spreadsheet.createRow(row);
+        xcell = xrow.createCell(2);
+        xcell.setCellValue((int)(total_visits.intValue()/2));
+
+        FileOutputStream out =
+                new FileOutputStream(fname);
+
+        workbook.write(out);
+        out.close();
+
+    }
 }
