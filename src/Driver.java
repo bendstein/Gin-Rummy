@@ -8,7 +8,7 @@ public class Driver {
 	
 	public static void main(String[] args) throws IOException, InterruptedException {
 		final int TOTAL_ROUNDS = 50;
-		final int TRAINING_GAMES_PER_ROUND = 100_000;
+		final int TRAINING_GAMES_PER_ROUND = 250_000;
 		final int EVALUATION_GAMES_PER_ROUND = 20_000;
         final int CONCURRENT_THREADS = 8;
 
@@ -26,7 +26,7 @@ public class Driver {
 
 		Player basePlayer = new Player(new StrategyDraw(false), new StrategyDiscard(false), new StrategyKnock(false));
 		Player cfrPlayer = new Player(new StrategyDrawResearch(false), new StrategyDiscardResearch(false), new StrategyKnockResearch(false));
-		
+
 		for (int round = 0; round < TOTAL_ROUNDS; round++) {
 			// Train for a while
 			cfrPlayer.getKnockStrategy().setTrain(true);
