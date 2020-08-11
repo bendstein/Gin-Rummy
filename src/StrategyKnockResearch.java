@@ -169,8 +169,8 @@ public class StrategyKnockResearch extends StrategyKnock {
                     xcell.setCellValue((String)i);
                 else if(i instanceof Double)
                     xcell.setCellValue((Double)i);
-                else if(i instanceof Integer)
-                    xcell.setCellValue((Integer)i);
+                else if(i instanceof Long)
+                    xcell.setCellValue((Long)i);
                 else
                     xcell.setCellValue(i.toString());
 
