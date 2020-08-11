@@ -353,6 +353,21 @@ public class GameState {
 		}
 	}
 
+	public int getDrawn(int player) {
+		if(previous == null) return -1;
+
+		/*
+		 * The card that is currently in the player's hand that wasn't last turn is the card they drew.
+		 */
+		for (int c : GinRummyAndTonic_v10.MyGinRummyUtil.bitstringToIDArray(getPlayerCards(player))) {
+			if(!GinRummyAndTonic_v10.MyGinRummyUtil.contains(previous.getPlayerCards(player), c)) {
+				return c;
+			}
+		}
+
+		return -1;
+	}
+
 	public Player getOther(int i) {
 		for(int i1 = 0; i1 < players.length; i++) {
 			if(i1 != i) return players[i];

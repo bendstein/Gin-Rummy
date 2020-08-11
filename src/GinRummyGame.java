@@ -318,14 +318,13 @@ public class GinRummyGame {
 
 		 */
 
-
 		// Multiple non-verbose games
 
 		setPlayVerbose(false);
-		int numGames = 10;
-		p1 = new GinRummyAndTonic_v10();
+		int numGames = 50;
+		p1 = new GinRummyPlayerImpl();
 		GinRummyPlayer[] p0s = new GinRummyPlayer[]{
-				new AgentSimple()};
+				new GinRummyAndTonic_v2()};
 
 
 		for(GinRummyPlayer p0 : p0s) {

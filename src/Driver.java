@@ -1,17 +1,31 @@
-import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 
 public class Driver {
 
 	private static Double util = 0.0;
 	
-	public static void main(String[] args) throws FileNotFoundException, InterruptedException {
+	public static void main(String[] args) throws IOException, InterruptedException {
 		final int TOTAL_ROUNDS = 50;
-		final int TRAINING_GAMES_PER_ROUND = 1_000_000;
-		final int EVALUATION_GAMES_PER_ROUND = 100_000;
-        final int CONCURRENT_THREADS = 16;
-        
+		final int TRAINING_GAMES_PER_ROUND = 100_000;
+		final int EVALUATION_GAMES_PER_ROUND = 20_000;
+        final int CONCURRENT_THREADS = 8;
+
+        /*  |										  | *
+         *  | Change THESE numbers for the experiment | *
+         *  v										  v *
+         *												*/
+			GinRummyUtil.GIN_BONUS = 25; //Default is 25
+			GinRummyUtil.UNDERCUT_BONUS = 25; //Default is 25
+
+		/*  ^										  ^ *
+		 *  | Change THESE numbers for the experiment | *
+		 *  |										  | *
+		 *												*/
+
 		Player basePlayer = new Player(new StrategyDraw(false), new StrategyDiscard(false), new StrategyKnock(false));
-		Player cfrPlayer = new Player(new StrategyDrawCFR(false), new StrategyDiscardNew(false), new StrategyKnockCFR(false));
+		Player cfrPlayer = new Player(new StrategyDrawResearch(false), new StrategyDiscardResearch(false), new StrategyKnockResearch(false));
 		
 		for (int round = 0; round < TOTAL_ROUNDS; round++) {
 			// Train for a while
@@ -37,6 +51,7 @@ public class Driver {
 					if (threads[j] != null) threads[j].join();
 				}
 			}
+
 			System.out.println("Utility in training round " + (round+1) + " is " + util/TRAINING_GAMES_PER_ROUND);
 			
 			cfrPlayer.getKnockStrategy().setTrain(false);
@@ -63,12 +78,12 @@ public class Driver {
 				}
 			}
 			System.out.println("EV of CFR player vs. base player in " + (round+1) + " is " + util/EVALUATION_GAMES_PER_ROUND);
-			
-			cfrPlayer.getDrawStrategy().toFile("CFR_Draw_Deadwood.txt");
-			cfrPlayer.getKnockStrategy().toFile("CFR_Knock_Deadwood.txt");
-			cfrPlayer.getDiscardStrategy().toFile("CFR_Discard_Deadwood.txt");
+
+			Files.createDirectories(Paths.get("Research/"));
+			cfrPlayer.getKnockStrategy().toFile(String.format("Research/Knock_GinBonus_%d_UndercutBonus_%d.txt", GinRummyUtil.GIN_BONUS, GinRummyUtil.UNDERCUT_BONUS));
 		}
 
+		/*
 		System.out.println("\nEquilibrium Drawing Strategy");
 		System.out.println(cfrPlayer.getDrawStrategy().toString());		
 		
@@ -77,5 +92,7 @@ public class Driver {
 
 		System.out.println("\nEquilibrium Discarding Strategy");
 		System.out.println(cfrPlayer.getDiscardStrategy().toString());
+
+		 */
 	}
 }

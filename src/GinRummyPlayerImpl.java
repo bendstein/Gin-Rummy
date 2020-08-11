@@ -1,39 +1,10 @@
-import java.io.File;
-import java.io.PrintWriter;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Random;
-import java.util.Scanner;
-import java.util.Set;
-import java.util.TreeMap;
+import java.util.*;
 import java.util.stream.Collectors;
 
-
-
 /**
- * Class containing the player
+ * Class containing the player used for the research project.
  */
-public class GinRummyAndTonic_v10 implements GinRummyPlayer {
-
-    // TODO: Tune these parameters
-    static int MAX_DISCARDS_TO_CONSIDER = 5;
-    static int MAX_DEADWOOD_DIFFERENCE = 9;
-    static int EXTRAPOLATE_TO_TURNS = 8;
-    static double DEADWOOD_W = 1.7;
-    static double DEADWOOD_W2 = 1.8;
-    static double DEADWOOD_W3 = 1.8;
-    static double DEADWOOD_W4 = 1.00;
-    static int MINIMUM_OPPONENT_OBSERVATIONS = 100;
-
-    final static int[] countTurns = {18149,18332,18169,17748,17389,16822,15964,14673,13021,11074,8983,7022,5213,3705,2483,1536,755,223,33,4,0};
-    //final static int[] countTurns = {18333,18332,18169,17748,17389,16822,15964,14673,13021,11074,8983,7022,5213,3705,2483,1536,755,223,33,4,0};
-    //final static int[] countTurns = {17864,18014,18169,17748,17389,16822,15964,14673,13021,11074,8983,7022,5213,3705,2483,1536,755,223,33,4,0};
-
-    final static int THREAD_COUNT = 16;
+public class GinRummyPlayerImpl implements GinRummyPlayer {
 
     // <editor-fold desc="Instance Variables">
     /**
@@ -44,15 +15,15 @@ public class GinRummyAndTonic_v10 implements GinRummyPlayer {
     /**
      * prng
      */
-    private Random random = new Random();
+    private final Random random = new Random();
 
     /**
-     * Becomes true if opponent has knocked.
+     * True if the opponent has knocked this round. False, otherwise.
      */
     private boolean opponentKnocked = false;
 
     /**
-     * The id of the card which was drawn
+     * The id of the card which was drawn by the player
      */
     private int drawn;
 
@@ -62,9 +33,9 @@ public class GinRummyAndTonic_v10 implements GinRummyPlayer {
     private State state;
 
     /**
-     * Parameters used for different decision points
+     * The class containing our knock strategy.
      */
-    private GeneralStrategy generalStrategy;
+    private KnockStrat knockStrat;
 
     /**
      * If the opponent knocks, this is what their final meld set is
@@ -72,8 +43,8 @@ public class GinRummyAndTonic_v10 implements GinRummyPlayer {
     private ArrayList<ArrayList<Card>> oppMelds;
     // </editor-fold>
 
-    public GinRummyAndTonic_v10() {
-        HashMap<String, Double> knockStrat = new HashMap<String, Double>() {
+    public GinRummyPlayerImpl() {
+        HashMap<String, Double> knock = new HashMap<String, Double>() {
             {
                 put("9_49_9", 0.000);
                 put("9_49_8", 0.000);
@@ -2978,705 +2949,7 @@ public class GinRummyAndTonic_v10 implements GinRummyPlayer {
 
             }
         };
-
-        HashMap<String, Double> drawStrat = new HashMap<String, Double>() {
-            {
-                put("9_36_1", 0.500);
-                put("9_36_0", 0.500);
-                put("9_35_2", 0.500);
-                put("9_35_1", 0.500);
-                put("9_35_0", 0.245);
-                put("9_34_1", 1.000);
-                put("9_34_0", 0.000);
-                put("9_33_2", 0.500);
-                put("9_33_1", 0.500);
-                put("9_33_0", 0.000);
-                put("9_32_2", 0.000);
-                put("9_32_1", 0.260);
-                put("9_32_0", 0.602);
-                put("9_31_2", 0.849);
-                put("9_31_1", 0.236);
-                put("9_31_0", 0.384);
-                put("9_30_2", 0.000);
-                put("9_30_1", 0.980);
-                put("9_30_0", 1.000);
-                put("9_29_2", 1.000);
-                put("9_29_1", 0.649);
-                put("9_29_0", 0.586);
-                put("9_28_2", 0.429);
-                put("9_28_1", 0.494);
-                put("9_28_0", 1.000);
-                put("9_27_2", 0.655);
-                put("9_27_1", 0.264);
-                put("9_27_0", 0.922);
-                put("9_26_2", 1.000);
-                put("9_26_1", 0.616);
-                put("9_26_0", 0.408);
-                put("9_25_2", 0.481);
-                put("9_25_1", 0.030);
-                put("9_25_0", 0.100);
-                put("9_24_2", 0.138);
-                put("9_24_1", 0.957);
-                put("9_24_0", 0.703);
-                put("9_23_2", 0.348);
-                put("9_23_1", 0.426);
-                put("9_23_0", 0.406);
-                put("9_22_2", 0.388);
-                put("9_22_1", 0.114);
-                put("9_22_0", 0.381);
-                put("9_21_2", 0.003);
-                put("9_21_1", 0.000);
-                put("9_21_0", 0.330);
-                put("8_41_1", 0.500);
-                put("8_41_0", 0.500);
-                put("8_40_0", 0.500);
-                put("8_39_1", 0.500);
-                put("8_39_0", 0.500);
-                put("8_38_1", 0.500);
-                put("8_38_0", 1.000);
-                put("8_37_2", 0.500);
-                put("8_37_1", 0.500);
-                put("8_37_0", 0.428);
-                put("8_36_2", 0.424);
-                put("8_36_1", 0.600);
-                put("8_36_0", 0.621);
-                put("8_35_2", 0.391);
-                put("8_35_1", 0.000);
-                put("8_35_0", 0.597);
-                put("8_34_2", 0.000);
-                put("8_34_1", 0.144);
-                put("8_34_0", 0.482);
-                put("8_33_2", 0.785);
-                put("8_33_1", 0.922);
-                put("8_33_0", 0.000);
-                put("8_32_2", 0.136);
-                put("8_32_1", 0.056);
-                put("8_32_0", 0.006);
-                put("8_31_2", 0.653);
-                put("8_31_1", 0.010);
-                put("8_31_0", 0.391);
-                put("8_30_2", 0.064);
-                put("8_30_1", 0.283);
-                put("8_30_0", 1.000);
-                put("8_29_2", 1.000);
-                put("8_29_1", 0.151);
-                put("8_29_0", 0.490);
-                put("8_28_2", 0.405);
-                put("8_28_1", 0.715);
-                put("8_28_0", 0.971);
-                put("8_27_2", 0.032);
-                put("8_27_1", 0.563);
-                put("8_27_0", 0.588);
-                put("8_26_2", 0.068);
-                put("8_26_1", 0.682);
-                put("8_26_0", 0.228);
-                put("8_25_2", 0.394);
-                put("8_25_1", 0.184);
-                put("8_25_0", 0.200);
-                put("8_24_2", 0.132);
-                put("8_24_1", 0.420);
-                put("8_24_0", 0.129);
-                put("8_23_2", 0.269);
-                put("8_23_1", 0.374);
-                put("8_23_0", 0.721);
-                put("8_22_2", 0.434);
-                put("8_22_1", 0.462);
-                put("8_22_0", 0.214);
-                put("8_21_2", 0.005);
-                put("8_21_1", 0.010);
-                put("8_21_0", 0.015);
-                put("7_44_1", 0.500);
-                put("7_44_0", 0.000);
-                put("7_43_1", 0.500);
-                put("7_42_0", 0.500);
-                put("7_41_1", 0.500);
-                put("7_41_0", 1.000);
-                put("7_40_2", 0.500);
-                put("7_40_1", 0.556);
-                put("7_40_0", 0.000);
-                put("7_39_2", 0.500);
-                put("7_39_1", 0.500);
-                put("7_39_0", 0.921);
-                put("7_38_2", 0.000);
-                put("7_38_1", 0.000);
-                put("7_38_0", 0.471);
-                put("7_37_2", 1.000);
-                put("7_37_1", 0.680);
-                put("7_37_0", 0.601);
-                put("7_36_2", 0.852);
-                put("7_36_1", 0.286);
-                put("7_36_0", 0.804);
-                put("7_35_2", 0.147);
-                put("7_35_1", 0.084);
-                put("7_35_0", 0.955);
-                put("7_34_2", 0.026);
-                put("7_34_1", 0.135);
-                put("7_34_0", 0.490);
-                put("7_33_2", 0.004);
-                put("7_33_1", 0.344);
-                put("7_33_0", 0.387);
-                put("7_32_2", 0.987);
-                put("7_32_1", 0.016);
-                put("7_32_0", 0.158);
-                put("7_31_2", 0.736);
-                put("7_31_1", 0.031);
-                put("7_31_0", 0.016);
-                put("7_30_2", 0.168);
-                put("7_30_1", 0.843);
-                put("7_30_0", 0.347);
-                put("7_29_2", 0.940);
-                put("7_29_1", 0.404);
-                put("7_29_0", 0.322);
-                put("7_28_2", 0.314);
-                put("7_28_1", 0.250);
-                put("7_28_0", 0.464);
-                put("7_27_2", 0.169);
-                put("7_27_1", 0.024);
-                put("7_27_0", 0.609);
-                put("7_26_2", 0.734);
-                put("7_26_1", 0.338);
-                put("7_26_0", 0.606);
-                put("7_25_2", 0.308);
-                put("7_25_1", 0.064);
-                put("7_25_0", 0.297);
-                put("7_24_2", 0.937);
-                put("7_24_1", 0.213);
-                put("7_24_0", 0.014);
-                put("7_23_2", 0.858);
-                put("7_23_1", 0.996);
-                put("7_23_0", 0.337);
-                put("7_22_2", 0.423);
-                put("7_22_1", 0.594);
-                put("7_22_0", 0.999);
-                put("7_21_2", 0.017);
-                put("7_21_1", 0.006);
-                put("7_21_0", 0.795);
-                put("6_47_1", 0.500);
-                put("6_47_0", 1.000);
-                put("6_46_0", 0.000);
-                put("6_45_1", 0.500);
-                put("6_45_0", 0.000);
-                put("6_44_1", 0.500);
-                put("6_44_0", 0.247);
-                put("6_43_1", 0.500);
-                put("6_43_0", 0.493);
-                put("6_42_2", 0.500);
-                put("6_42_1", 0.984);
-                put("6_42_0", 0.972);
-                put("6_41_2", 0.500);
-                put("6_41_1", 0.000);
-                put("6_41_0", 0.682);
-                put("6_40_2", 0.456);
-                put("6_40_1", 0.851);
-                put("6_40_0", 0.468);
-                put("6_39_2", 0.859);
-                put("6_39_1", 0.996);
-                put("6_39_0", 0.599);
-                put("6_38_2", 0.750);
-                put("6_38_1", 0.104);
-                put("6_38_0", 0.096);
-                put("6_37_2", 0.614);
-                put("6_37_1", 0.640);
-                put("6_37_0", 0.487);
-                put("6_36_2", 0.314);
-                put("6_36_1", 0.158);
-                put("6_36_0", 0.097);
-                put("6_35_2", 0.802);
-                put("6_35_1", 0.249);
-                put("6_35_0", 0.082);
-                put("6_34_2", 0.728);
-                put("6_34_1", 0.487);
-                put("6_34_0", 0.725);
-                put("6_33_2", 0.931);
-                put("6_33_1", 0.239);
-                put("6_33_0", 0.809);
-                put("6_32_2", 0.020);
-                put("6_32_1", 0.006);
-                put("6_32_0", 0.055);
-                put("6_31_2", 0.055);
-                put("6_31_1", 0.813);
-                put("6_31_0", 0.536);
-                put("6_30_2", 0.244);
-                put("6_30_1", 0.285);
-                put("6_30_0", 0.992);
-                put("6_29_2", 0.018);
-                put("6_29_1", 0.519);
-                put("6_29_0", 0.499);
-                put("6_28_2", 0.927);
-                put("6_28_1", 0.359);
-                put("6_28_0", 0.937);
-                put("6_27_2", 0.175);
-                put("6_27_1", 0.018);
-                put("6_27_0", 0.391);
-                put("6_26_2", 0.570);
-                put("6_26_1", 0.353);
-                put("6_26_0", 0.778);
-                put("6_25_2", 0.441);
-                put("6_25_1", 0.374);
-                put("6_25_0", 0.933);
-                put("6_24_2", 0.463);
-                put("6_24_1", 0.640);
-                put("6_24_0", 0.612);
-                put("6_23_2", 0.484);
-                put("6_23_1", 0.259);
-                put("6_23_0", 0.836);
-                put("6_22_2", 0.442);
-                put("6_22_1", 0.885);
-                put("6_22_0", 0.005);
-                put("6_21_2", 0.000);
-                put("6_21_1", 0.000);
-                put("6_21_0", 0.976);
-                put("5_49_2", 0.500);
-                put("5_49_1", 0.500);
-                put("5_49_0", 0.500);
-                put("5_48_2", 0.500);
-                put("5_48_1", 1.000);
-                put("5_48_0", 0.000);
-                put("5_47_2", 0.500);
-                put("5_47_1", 0.500);
-                put("5_47_0", 0.914);
-                put("5_46_2", 0.792);
-                put("5_46_1", 0.000);
-                put("5_46_0", 0.903);
-                put("5_45_2", 1.000);
-                put("5_45_1", 0.230);
-                put("5_45_0", 0.602);
-                put("5_44_2", 0.000);
-                put("5_44_1", 0.466);
-                put("5_44_0", 0.481);
-                put("5_43_2", 0.614);
-                put("5_43_1", 0.181);
-                put("5_43_0", 0.651);
-                put("5_42_2", 1.000);
-                put("5_42_1", 0.227);
-                put("5_42_0", 0.116);
-                put("5_41_2", 0.517);
-                put("5_41_1", 0.171);
-                put("5_41_0", 0.424);
-                put("5_40_2", 0.633);
-                put("5_40_1", 0.696);
-                put("5_40_0", 0.358);
-                put("5_39_2", 0.117);
-                put("5_39_1", 0.087);
-                put("5_39_0", 0.623);
-                put("5_38_2", 0.936);
-                put("5_38_1", 0.973);
-                put("5_38_0", 0.580);
-                put("5_37_2", 0.543);
-                put("5_37_1", 0.963);
-                put("5_37_0", 0.521);
-                put("5_36_2", 0.014);
-                put("5_36_1", 0.030);
-                put("5_36_0", 0.844);
-                put("5_35_2", 0.150);
-                put("5_35_1", 0.264);
-                put("5_35_0", 0.773);
-                put("5_34_2", 0.015);
-                put("5_34_1", 0.045);
-                put("5_34_0", 0.637);
-                put("5_33_2", 0.049);
-                put("5_33_1", 0.685);
-                put("5_33_0", 0.532);
-                put("5_32_2", 0.792);
-                put("5_32_1", 0.351);
-                put("5_32_0", 0.992);
-                put("5_31_2", 0.370);
-                put("5_31_1", 0.493);
-                put("5_31_0", 0.321);
-                put("5_30_2", 0.156);
-                put("5_30_1", 0.038);
-                put("5_30_0", 0.902);
-                put("5_29_2", 0.092);
-                put("5_29_1", 0.013);
-                put("5_29_0", 0.100);
-                put("5_28_2", 0.093);
-                put("5_28_1", 0.151);
-                put("5_28_0", 0.136);
-                put("5_27_2", 0.047);
-                put("5_27_1", 0.012);
-                put("5_27_0", 0.897);
-                put("5_26_2", 0.001);
-                put("5_26_1", 0.025);
-                put("5_26_0", 0.422);
-                put("5_25_2", 0.223);
-                put("5_25_1", 0.016);
-                put("5_25_0", 1.000);
-                put("5_24_2", 0.012);
-                put("5_24_1", 0.288);
-                put("5_24_0", 0.977);
-                put("5_23_2", 0.002);
-                put("5_23_1", 0.042);
-                put("5_23_0", 0.009);
-                put("5_22_2", 0.421);
-                put("5_22_1", 0.126);
-                put("5_22_0", 0.998);
-                put("5_21_2", 0.001);
-                put("5_21_1", 0.000);
-                put("5_21_0", 0.997);
-                put("4_49_2", 0.500);
-                put("4_49_1", 0.500);
-                put("4_49_0", 0.000);
-                put("4_48_2", 0.500);
-                put("4_48_1", 0.183);
-                put("4_48_0", 0.410);
-                put("4_47_2", 0.500);
-                put("4_47_1", 0.368);
-                put("4_47_0", 0.988);
-                put("4_46_2", 0.811);
-                put("4_46_1", 0.968);
-                put("4_46_0", 0.920);
-                put("4_45_2", 1.000);
-                put("4_45_1", 0.411);
-                put("4_45_0", 0.331);
-                put("4_44_2", 0.332);
-                put("4_44_1", 0.333);
-                put("4_44_0", 0.621);
-                put("4_43_2", 0.687);
-                put("4_43_1", 0.625);
-                put("4_43_0", 0.776);
-                put("4_42_2", 0.282);
-                put("4_42_1", 0.461);
-                put("4_42_0", 0.021);
-                put("4_41_2", 0.262);
-                put("4_41_1", 0.452);
-                put("4_41_0", 0.087);
-                put("4_40_2", 0.797);
-                put("4_40_1", 0.297);
-                put("4_40_0", 0.539);
-                put("4_39_2", 0.058);
-                put("4_39_1", 0.015);
-                put("4_39_0", 0.640);
-                put("4_38_2", 0.093);
-                put("4_38_1", 0.567);
-                put("4_38_0", 0.649);
-                put("4_37_2", 0.785);
-                put("4_37_1", 0.094);
-                put("4_37_0", 0.970);
-                put("4_36_2", 0.453);
-                put("4_36_1", 0.045);
-                put("4_36_0", 0.915);
-                put("4_35_2", 0.096);
-                put("4_35_1", 0.041);
-                put("4_35_0", 0.581);
-                put("4_34_2", 0.080);
-                put("4_34_1", 0.006);
-                put("4_34_0", 0.143);
-                put("4_33_2", 0.037);
-                put("4_33_1", 0.254);
-                put("4_33_0", 0.269);
-                put("4_32_2", 0.110);
-                put("4_32_1", 0.001);
-                put("4_32_0", 0.865);
-                put("4_31_2", 0.254);
-                put("4_31_1", 0.082);
-                put("4_31_0", 0.830);
-                put("4_30_2", 0.389);
-                put("4_30_1", 0.025);
-                put("4_30_0", 0.336);
-                put("4_29_2", 0.032);
-                put("4_29_1", 0.105);
-                put("4_29_0", 0.200);
-                put("4_28_2", 0.004);
-                put("4_28_1", 0.001);
-                put("4_28_0", 0.360);
-                put("4_27_2", 0.058);
-                put("4_27_1", 0.022);
-                put("4_27_0", 0.994);
-                put("4_26_2", 0.001);
-                put("4_26_1", 0.012);
-                put("4_26_0", 0.009);
-                put("4_25_2", 0.048);
-                put("4_25_1", 0.017);
-                put("4_25_0", 0.999);
-                put("4_24_2", 0.007);
-                put("4_24_1", 0.149);
-                put("4_24_0", 0.979);
-                put("4_23_2", 0.000);
-                put("4_23_1", 0.107);
-                put("4_23_0", 0.926);
-                put("4_22_2", 0.084);
-                put("4_22_1", 0.003);
-                put("4_22_0", 0.985);
-                put("4_21_2", 0.000);
-                put("4_21_1", 0.000);
-                put("4_21_0", 0.995);
-                put("3_49_2", 0.000);
-                put("3_49_1", 0.000);
-                put("3_49_0", 0.072);
-                put("3_48_2", 0.000);
-                put("3_48_1", 0.577);
-                put("3_48_0", 0.087);
-                put("3_47_2", 0.683);
-                put("3_47_1", 0.329);
-                put("3_47_0", 0.004);
-                put("3_46_2", 0.537);
-                put("3_46_1", 0.975);
-                put("3_46_0", 0.355);
-                put("3_45_2", 0.194);
-                put("3_45_1", 0.158);
-                put("3_45_0", 0.211);
-                put("3_44_2", 0.221);
-                put("3_44_1", 0.000);
-                put("3_44_0", 0.595);
-                put("3_43_2", 0.305);
-                put("3_43_1", 0.018);
-                put("3_43_0", 0.097);
-                put("3_42_2", 0.704);
-                put("3_42_1", 0.009);
-                put("3_42_0", 0.265);
-                put("3_41_2", 0.253);
-                put("3_41_1", 0.211);
-                put("3_41_0", 0.991);
-                put("3_40_2", 0.560);
-                put("3_40_1", 0.245);
-                put("3_40_0", 0.557);
-                put("3_39_2", 0.357);
-                put("3_39_1", 0.062);
-                put("3_39_0", 0.730);
-                put("3_38_2", 0.322);
-                put("3_38_1", 0.275);
-                put("3_38_0", 0.162);
-                put("3_37_2", 0.191);
-                put("3_37_1", 0.395);
-                put("3_37_0", 0.085);
-                put("3_36_2", 0.311);
-                put("3_36_1", 0.148);
-                put("3_36_0", 0.724);
-                put("3_35_2", 0.190);
-                put("3_35_1", 0.706);
-                put("3_35_0", 0.739);
-                put("3_34_2", 0.046);
-                put("3_34_1", 0.089);
-                put("3_34_0", 0.130);
-                put("3_33_2", 0.007);
-                put("3_33_1", 0.402);
-                put("3_33_0", 0.990);
-                put("3_32_2", 0.031);
-                put("3_32_1", 0.056);
-                put("3_32_0", 0.418);
-                put("3_31_2", 0.007);
-                put("3_31_1", 0.142);
-                put("3_31_0", 0.712);
-                put("3_30_2", 0.012);
-                put("3_30_1", 0.012);
-                put("3_30_0", 0.168);
-                put("3_29_2", 0.000);
-                put("3_29_1", 0.257);
-                put("3_29_0", 0.001);
-                put("3_28_2", 0.011);
-                put("3_28_1", 0.013);
-                put("3_28_0", 0.319);
-                put("3_27_2", 0.020);
-                put("3_27_1", 0.013);
-                put("3_27_0", 0.375);
-                put("3_26_2", 0.000);
-                put("3_26_1", 0.009);
-                put("3_26_0", 0.024);
-                put("3_25_2", 0.003);
-                put("3_25_1", 0.014);
-                put("3_25_0", 1.000);
-                put("3_24_2", 0.000);
-                put("3_24_1", 0.047);
-                put("3_24_0", 0.995);
-                put("3_23_2", 0.004);
-                put("3_23_1", 0.008);
-                put("3_23_0", 0.604);
-                put("3_22_2", 0.000);
-                put("3_22_1", 0.004);
-                put("3_22_0", 0.825);
-                put("3_21_2", 0.001);
-                put("3_21_1", 0.001);
-                put("3_21_0", 1.000);
-                put("2_49_2", 0.267);
-                put("2_49_1", 0.000);
-                put("2_49_0", 0.001);
-                put("2_48_2", 0.162);
-                put("2_48_1", 0.003);
-                put("2_48_0", 0.207);
-                put("2_47_2", 0.700);
-                put("2_47_1", 0.018);
-                put("2_47_0", 0.541);
-                put("2_46_2", 0.263);
-                put("2_46_1", 0.598);
-                put("2_46_0", 0.044);
-                put("2_45_2", 0.978);
-                put("2_45_1", 0.318);
-                put("2_45_0", 0.110);
-                put("2_44_2", 0.048);
-                put("2_44_1", 0.964);
-                put("2_44_0", 0.051);
-                put("2_43_2", 0.618);
-                put("2_43_1", 0.024);
-                put("2_43_0", 0.201);
-                put("2_42_2", 0.363);
-                put("2_42_1", 0.170);
-                put("2_42_0", 0.218);
-                put("2_41_2", 0.072);
-                put("2_41_1", 0.427);
-                put("2_41_0", 0.536);
-                put("2_40_2", 0.282);
-                put("2_40_1", 0.065);
-                put("2_40_0", 0.584);
-                put("2_39_2", 0.688);
-                put("2_39_1", 0.144);
-                put("2_39_0", 0.029);
-                put("2_38_2", 0.007);
-                put("2_38_1", 0.352);
-                put("2_38_0", 0.658);
-                put("2_37_2", 0.034);
-                put("2_37_1", 0.170);
-                put("2_37_0", 0.892);
-                put("2_36_2", 0.402);
-                put("2_36_1", 0.000);
-                put("2_36_0", 0.154);
-                put("2_35_2", 0.549);
-                put("2_35_1", 0.072);
-                put("2_35_0", 0.658);
-                put("2_34_2", 0.003);
-                put("2_34_1", 0.006);
-                put("2_34_0", 0.876);
-                put("2_33_2", 0.027);
-                put("2_33_1", 0.020);
-                put("2_33_0", 0.001);
-                put("2_32_2", 0.062);
-                put("2_32_1", 0.008);
-                put("2_32_0", 0.826);
-                put("2_31_2", 0.003);
-                put("2_31_1", 0.013);
-                put("2_31_0", 0.305);
-                put("2_30_2", 0.006);
-                put("2_30_1", 0.000);
-                put("2_30_0", 0.056);
-                put("2_29_2", 0.001);
-                put("2_29_1", 0.000);
-                put("2_29_0", 0.098);
-                put("2_28_2", 0.016);
-                put("2_28_1", 0.004);
-                put("2_28_0", 0.091);
-                put("2_27_2", 0.006);
-                put("2_27_1", 0.004);
-                put("2_27_0", 0.091);
-                put("2_26_2", 0.003);
-                put("2_26_1", 0.009);
-                put("2_26_0", 0.001);
-                put("2_25_2", 0.006);
-                put("2_25_1", 0.001);
-                put("2_25_0", 0.982);
-                put("2_24_2", 0.015);
-                put("2_24_1", 0.015);
-                put("2_24_0", 0.891);
-                put("2_23_2", 0.015);
-                put("2_23_1", 0.008);
-                put("2_23_0", 0.001);
-                put("2_22_2", 0.018);
-                put("2_22_1", 0.004);
-                put("2_22_0", 0.181);
-                put("2_21_2", 0.000);
-                put("2_21_1", 0.000);
-                put("2_21_0", 0.940);
-                put("1_49_2", 0.074);
-                put("1_49_1", 0.216);
-                put("1_49_0", 0.000);
-                put("1_48_2", 0.012);
-                put("1_48_1", 0.120);
-                put("1_48_0", 0.000);
-                put("1_47_2", 0.859);
-                put("1_47_1", 0.046);
-                put("1_47_0", 0.813);
-                put("1_46_2", 0.087);
-                put("1_46_1", 0.076);
-                put("1_46_0", 0.282);
-                put("1_45_2", 0.092);
-                put("1_45_1", 0.000);
-                put("1_45_0", 0.062);
-                put("1_44_2", 0.037);
-                put("1_44_1", 0.646);
-                put("1_44_0", 0.267);
-                put("1_43_2", 0.123);
-                put("1_43_1", 0.085);
-                put("1_43_0", 0.191);
-                put("1_42_2", 0.766);
-                put("1_42_1", 0.964);
-                put("1_42_0", 0.046);
-                put("1_41_2", 0.005);
-                put("1_41_1", 0.001);
-                put("1_41_0", 0.466);
-                put("1_40_2", 0.117);
-                put("1_40_1", 0.217);
-                put("1_40_0", 0.236);
-                put("1_39_2", 0.024);
-                put("1_39_1", 0.000);
-                put("1_39_0", 0.053);
-                put("1_38_2", 0.000);
-                put("1_38_1", 0.036);
-                put("1_38_0", 0.165);
-                put("1_37_2", 0.279);
-                put("1_37_1", 0.049);
-                put("1_37_0", 0.998);
-                put("1_36_2", 0.001);
-                put("1_36_1", 0.094);
-                put("1_36_0", 0.168);
-                put("1_35_2", 0.007);
-                put("1_35_1", 0.003);
-                put("1_35_0", 0.005);
-                put("1_34_2", 0.071);
-                put("1_34_1", 0.037);
-                put("1_34_0", 0.631);
-                put("1_33_2", 0.003);
-                put("1_33_1", 0.028);
-                put("1_33_0", 0.461);
-                put("1_32_2", 0.007);
-                put("1_32_1", 0.030);
-                put("1_32_0", 0.001);
-                put("1_31_2", 0.002);
-                put("1_31_1", 0.101);
-                put("1_31_0", 0.358);
-                put("1_30_2", 0.006);
-                put("1_30_1", 0.012);
-                put("1_30_0", 0.002);
-                put("1_29_2", 0.006);
-                put("1_29_1", 0.191);
-                put("1_29_0", 0.001);
-                put("1_28_2", 0.003);
-                put("1_28_1", 0.071);
-                put("1_28_0", 0.003);
-                put("1_27_2", 0.002);
-                put("1_27_1", 0.040);
-                put("1_27_0", 0.013);
-                put("1_26_2", 0.015);
-                put("1_26_1", 0.028);
-                put("1_26_0", 0.033);
-                put("1_25_2", 0.001);
-                put("1_25_1", 0.000);
-                put("1_25_0", 0.009);
-                put("1_24_2", 0.006);
-                put("1_24_1", 0.005);
-                put("1_24_0", 0.001);
-                put("1_23_2", 0.001);
-                put("1_23_1", 0.032);
-                put("1_23_0", 0.022);
-                put("1_22_2", 0.000);
-                put("1_22_1", 0.021);
-                put("1_22_0", 0.051);
-                put("1_21_2", 0.000);
-                put("1_21_1", 0.009);
-                put("1_21_0", 0.833);
-
-            }
-        };
-
-        /*
-         * Order of strategy parameters:
-         *
-         * maxIsolatedSingleDeadwood
-         * minIsolatedSingleDiscardTurn
-         * maxSingleDeadwood
-         * minSingleDiscardTurn
-         * minPickupDifference
-         * canteloupe
-         */
-        generalStrategy = new GeneralStrategy(MyGinRummyUtil.decoded("344662"), knockStrat, drawStrat);
-
+        knockStrat = new KnockStrat(knock);
     }
 
     @Override
@@ -3687,12 +2960,12 @@ public class GinRummyAndTonic_v10 implements GinRummyPlayer {
 
         oppMelds = null;
         opponentKnocked = false;
-
     }
 
     @Override
     public boolean willDrawFaceUpCard(Card card) {
         int card_id = card.getId();
+
         // If first turn, record the face-up card. All other unseen face-up cards should be recorded in reportDiscard()
         if(state.getTurn() == 0) {
             state.addToSeen(card_id);
@@ -3703,28 +2976,8 @@ public class GinRummyAndTonic_v10 implements GinRummyPlayer {
         //Card is our face-up
         state.setFaceUp(card_id);
 
-        return willDrawFaceUpCard(state.getHand(), state.getFaceUp());
-
-    }
-
-    /**
-     * @param hand A hand of cards
-     * @param card_id The id of the face-up card
-     * @return true if we would pick up card_id with the given hand
-     */
-    public boolean willDrawFaceUpCard(long hand, int card_id) {
-
-        /*
-         * Get the improvement in deadwood in our hand from picking up the face-up and discarding our worst card
-         */
-        int improvement = MyGinRummyUtil.getImprovement(hand, card_id);
-
-        /*
-         * If improvement is positive and drawing the face-up makes a new meld, draw face-up
-         */
-        if(improvement > 0 && MyGinRummyUtil.makesNewMeld(hand, card_id))
-            return true;
-        else return false;
+        return (MyGinRummyUtil.getImprovement(state.getHand(), state.getFaceUp()) > 0 &&
+                MyGinRummyUtil.makesNewMeld(state.getHand(), state.getFaceUp()));
     }
 
     @Override
@@ -3734,8 +2987,7 @@ public class GinRummyAndTonic_v10 implements GinRummyPlayer {
         if(drawnCard == null || drawnCard.getId() != state.getFaceUp()) {
             state.decreaseNumRemaining();
             state.increaseTopCard();
-            if(playerNum != this.playerNum)
-                state.addToOppForwent(state.getFaceUp());
+            if(playerNum != this.playerNum) state.addToOppForwent(state.getFaceUp());
         }
 
         // Ignore other player draws.  Add to cards if playerNum is this player.
@@ -3747,21 +2999,183 @@ public class GinRummyAndTonic_v10 implements GinRummyPlayer {
         }
         //If the other player drew, and drawnCard isn't null, other player drew face-up.
         else {
-            if(drawnCard != null) {
-                if(state.getFaceUp() == -1) state.setFaceUp(drawnCard);
+            if(drawnCard != null)
                 state.addToOppHand(drawnCard.getId());
-            }
         }
     }
 
     @Override
     public Card getDiscard() {
-
-        ArrayList<DiscardMetric> metrics = getDiscardMetrics(state);
-        metrics.sort((DiscardMetric dm1, DiscardMetric dm2) -> dm1.score < dm2.score?-1:dm1.score>dm2.score?1:0);
-        return metrics.get(0).discard;
+        long potentialDiscards = findDiscard(state.getHand(), state.getFaceUp());
+        return MyGinRummyUtil.bitstringToCards(potentialDiscards).get(random.nextInt(MyGinRummyUtil.size(potentialDiscards)));
     }
 
+    /**
+     * @param hand A hand of cards
+     * @param face_up The id of the face-up card
+     * @return A group of all cards which we would most prefer to discard
+     */
+    public long findDiscard(long hand, int face_up) {
+
+        /*
+         * First, get all cards who's removal would lower our deadwood the most (with a margin of 2)
+         * Ignoring the face_up if it is the card that was drawn this turn.
+         */
+        long candidateCards = MyGinRummyUtil.findHighestDiscards(hand, drawn, face_up, 2);
+
+        long toRemove = 0L;
+
+        /*
+         * Don't consider any cards that are in melds
+         */
+        for(int c : MyGinRummyUtil.bitstringToIDArray(candidateCards)) {
+            if(MyGinRummyUtil.contains(MyGinRummyUtil.getMelded(state.getHand(), 0L), c))
+                toRemove = MyGinRummyUtil.add(toRemove, c);
+        }
+
+        if(MyGinRummyUtil.removeAll(candidateCards, toRemove) != 0L) {
+            candidateCards = MyGinRummyUtil.removeAll(candidateCards, toRemove);
+        }
+
+        /*
+         * If there's only one card left to consider, discard it
+         */
+        if(MyGinRummyUtil.size(candidateCards) == 1) return candidateCards;
+
+        /*
+         * If any of our potential discards could be melded by the opponent, based on what we know is
+         * in their hand, don't consider discarding it.
+         */
+        ArrayList<ArrayList<Card>> oppMelds = GinRummyUtil.cardsToAllMelds(GinRummyUtil.bitstringToCards(state.oppHand));
+
+        for(Card c : GinRummyUtil.bitstringToCards(toRemove)) {
+            for(ArrayList<Card> meld : oppMelds) {
+                if(meld.contains(c)) {
+                    toRemove = MyGinRummyUtil.add(toRemove, c.getId());
+                    break;
+                }
+            }
+        }
+
+        if(MyGinRummyUtil.removeAll(candidateCards, toRemove) != 0L) {
+            candidateCards = MyGinRummyUtil.removeAll(candidateCards, toRemove);
+        }
+
+        /*
+         * If there's only one card left to consider, discard it
+         */
+        if(MyGinRummyUtil.size(candidateCards) == 1) return candidateCards;
+
+
+        /*
+         * Get the number of melds each card can still make, based on the cards that we have not yet seen, and the
+         * cards that are in the opponent's hand.
+         */
+
+        TreeMap<Integer, Integer> meldTurns = new TreeMap<>();
+        for(int i : MyGinRummyUtil.bitstringToIDArray(candidateCards))
+            meldTurns.put(i, state.getUsefulnessToOpponent(i));
+
+        /*
+         * If there are any cards that are "dead" (can't be melded), only consider them.
+         * If there are none, do the same for any cards that only have 1 remaining meld.
+         * Do the same for 2, 3.
+         */
+
+        long temp = 0L;
+
+        for(int i = 0; i < 4; i++) {
+            for(Map.Entry<Integer, Integer> entry : meldTurns.entrySet()) {
+                if(entry.getValue() == i) {
+                    temp = MyGinRummyUtil.add(temp, entry.getKey());
+                }
+            }
+            if(temp == 0L)
+                break;
+        }
+
+        if(temp != 0L)
+            candidateCards = temp;
+
+        if(MyGinRummyUtil.size(candidateCards) == 1) return candidateCards;
+
+        /*
+         * If the opponent has cards in his hand that are either
+         *  a) Of the same rank as a potential discard, or
+         *  b) Of adjacent rank, and of the same suit, as a potential discard
+         * then, don't consider it for discard
+         */
+
+        toRemove = 0L;
+
+        for(int i : MyGinRummyUtil.bitstringToIDArray(candidateCards)) {
+            if(MyGinRummyUtil.containsRank(state.oppHand, i) || MyGinRummyUtil.containsSuit(state.oppHand, i, 1))
+                toRemove = MyGinRummyUtil.add(toRemove, i);
+        }
+
+        if(MyGinRummyUtil.removeAll(candidateCards, toRemove) != 0L) {
+            candidateCards = MyGinRummyUtil.removeAll(candidateCards, toRemove);
+        }
+
+        /*
+         * Also check same-suit cards who are 2 ranks away.
+         */
+
+        toRemove = 0L;
+
+        for(int i : MyGinRummyUtil.bitstringToIDArray(candidateCards)) {
+            if(MyGinRummyUtil.containsSuit(state.oppHand, i, 2))
+                toRemove = MyGinRummyUtil.add(toRemove, i);
+        }
+
+        if(MyGinRummyUtil.removeAll(candidateCards, toRemove) != 0L) {
+            candidateCards = MyGinRummyUtil.removeAll(candidateCards, toRemove);
+        }
+        /*
+         * If the opponent has discarded or ignored cards that are either
+         *  a) Of the same rank as a potential discard, or
+         *  b) Of adjacent rank, and of the same suit, as a potential discard
+         * then, continue to consider it for discard it
+         */
+
+        temp = 0L;
+        for(int c : MyGinRummyUtil.bitstringToIDArray(candidateCards)) {
+            if(MyGinRummyUtil.containsRank(state.oppDiscard, c) || MyGinRummyUtil.containsSuit(state.oppDiscard, c, 1))
+                temp = MyGinRummyUtil.add(temp, c);
+            if(MyGinRummyUtil.containsRank(state.oppForwent, c) || MyGinRummyUtil.containsSuit(state.oppForwent, c, 1))
+                temp = MyGinRummyUtil.add(temp, c);
+        }
+
+        if(temp != 0L) candidateCards = temp;
+
+        /*
+         * Also check same-suit cards who are 2 ranks away.
+         */
+
+        temp = 0L;
+        for(int c : MyGinRummyUtil.bitstringToIDArray(candidateCards)) {
+            if(MyGinRummyUtil.containsSuit(state.oppDiscard, c, 2))
+                temp = MyGinRummyUtil.add(temp, c);
+            if(MyGinRummyUtil.containsSuit(state.oppForwent, c, 2))
+                temp = MyGinRummyUtil.add(temp, c);
+        }
+
+        if(temp != 0L) candidateCards = temp;
+
+        /*
+         * If there are any cards that would take more that 2 draws to meld, only consider them
+         */
+        temp = 0L;
+        ArrayList<Card> isolated = GinRummyUtil.bitstringToCards(MyGinRummyUtil.getIsolatedSingles(state.getHand(), 0L, state));
+        for(int c : MyGinRummyUtil.bitstringToIDArray(candidateCards)) {
+            if(isolated.contains(Card.getCard(c)))
+                temp = MyGinRummyUtil.add(temp, c);
+        }
+
+        if(temp != 0L) candidateCards = temp;
+        return candidateCards;
+
+    }
 
     @Override
     public void reportDiscard(int playerNum, Card discardedCard) {
@@ -3784,14 +3198,6 @@ public class GinRummyAndTonic_v10 implements GinRummyPlayer {
         ArrayList<ArrayList<ArrayList<Card>>> bestMeldSets;
         int deadwood;
 
-        /*
-         * TODO:
-         *  -Try to find the best melds to minimize opponent layoff. Make sure to balance with deadwood to prevent undercut.
-         *          -Based off of what we know is in their hand, and what cards we haven't seen. Account for # of remaining cards.
-         *              What's the probability that the opp has a given unseen card?
-         *          -Runs have more potential locations for layoff than 3 or 4 of a kind.
-         *          -Laying off a low-value card is less important than a high-value one. May not be significant.
-         */
         bestMeldSets = MyGinRummyUtil.cardsToBestMeldSets(MyGinRummyUtil.bitstringToCards(state.getHand()));
         deadwood = bestMeldSets.isEmpty() ?
                 MyGinRummyUtil.getDeadwoodPoints(MyGinRummyUtil.bitstringToCards(state.getHand())) :
@@ -3800,20 +3206,26 @@ public class GinRummyAndTonic_v10 implements GinRummyPlayer {
         // Check if deadwood of maximal meld is low enough to go out.
 
 
-        //Only knock if deadwood is both less than or equal to 10 and strategy.getMaxKnockDeadwood() [0].
+        //Only knock if deadwood is both less than or equal to 10 and the deadwood associated with the infoset from the CFR training.
 
         if (!opponentKnocked &&
                 (bestMeldSets.isEmpty() || deadwood > MyGinRummyUtil.MAX_DEADWOOD))
             return null;
         else if (!opponentKnocked) {
+
             String k = state.getFaceUpPrevious() == -1? "" : deadwood + "_" + state.getTopCard() + "_" + GinRummyUtil.getDeadwoodPoints(Card.getCard(state.getFaceUpPrevious()));
-            double prob = generalStrategy.getKnockAt(k);
+            double prob = knockStrat.getKnockAt(k);
             if(deadwood == 0 || random.nextDouble() < prob) {
                 //Select the meld configuration to submit.
                 ArrayList<ArrayList<Card>> bestMeldSet = null;
                 double minExpectedLayoff = Double.MAX_VALUE;
                 for(ArrayList<ArrayList<Card>> meldSet : bestMeldSets) {
                     ArrayList<Card> layoff = new ArrayList<>();
+
+                    /*
+                     * If we decided to knock, and there are multiple meld sets with the minimum deadwood, select the meld
+                     * set that minimized opponent layoff.
+                     */
 
                     // Add all cards to layoff who could be inserted into our hand
                     for (ArrayList<Card> meld : meldSet) {
@@ -3861,6 +3273,9 @@ public class GinRummyAndTonic_v10 implements GinRummyPlayer {
         }
 
 
+        /*
+         * If the opponent knocks, find the optimal balance between our meld sets and layoff cards
+         */
         else {
             ArrayList<Card> layoff = new ArrayList<>();
 
@@ -4182,7 +3597,7 @@ public class GinRummyAndTonic_v10 implements GinRummyPlayer {
                     if(!toCheck.contains(i) && !checked.contains(i)) toCheck.add(i);
                 }
 
-				/*
+            /*
             // Add all potential same-suit melds to the list
             if (sameSuitIds.length == 2)
                 melds.add(MyGinRummyUtil.add(MyGinRummyUtil.idsToBitstring(sameSuitIds), id));
@@ -4194,7 +3609,7 @@ public class GinRummyAndTonic_v10 implements GinRummyPlayer {
                     melds.add(MyGinRummyUtil.add(MyGinRummyUtil.idsToBitstring(sameSuitIds), i));
             }
 
-				 */
+             */
             }
 
             if(run.size() >= 3) melds.add(MyGinRummyUtil.idsToBitstring(run));
@@ -4252,7 +3667,7 @@ public class GinRummyAndTonic_v10 implements GinRummyPlayer {
                     if(!toCheck.contains(i) && !checked.contains(i)) toCheck.add(i);
                 }
 
-				/*
+            /*
             // Add all potential same-suit melds to the list
             if (sameSuitIds.length == 2)
                 melds.add(MyGinRummyUtil.add(MyGinRummyUtil.idsToBitstring(sameSuitIds), id));
@@ -4264,7 +3679,7 @@ public class GinRummyAndTonic_v10 implements GinRummyPlayer {
                     melds.add(MyGinRummyUtil.add(MyGinRummyUtil.idsToBitstring(sameSuitIds), i));
             }
 
-				 */
+             */
             }
 
             if(run.size() >= 3) melds.add(MyGinRummyUtil.idsToBitstring(run));
@@ -4321,7 +3736,7 @@ public class GinRummyAndTonic_v10 implements GinRummyPlayer {
                     if(!toCheck.contains(i) && !checked.contains(i)) toCheck.add(i);
                 }
 
-				/*
+            /*
             // Add all potential same-suit melds to the list
             if (sameSuitIds.length == 2)
                 melds.add(MyGinRummyUtil.add(MyGinRummyUtil.idsToBitstring(sameSuitIds), id));
@@ -4333,7 +3748,7 @@ public class GinRummyAndTonic_v10 implements GinRummyPlayer {
                     melds.add(MyGinRummyUtil.add(MyGinRummyUtil.idsToBitstring(sameSuitIds), i));
             }
 
-				 */
+             */
             }
 
             if(run.size() >= 3) melds.add(MyGinRummyUtil.idsToBitstring(run));
@@ -4450,19 +3865,6 @@ public class GinRummyAndTonic_v10 implements GinRummyPlayer {
         }
 
         // <editor-fold desc="Getters and Setters">
-
-        public void setSeen(long seen) {
-            this.seen = seen;
-        }
-
-        public void setTurn(int turn) {
-            this.turn = turn;
-        }
-
-        public void setNum_remaining(int num_remaining) {
-            this.num_remaining = num_remaining;
-        }
-
         public int getTurn() {
             return turn;
         }
@@ -4572,61 +3974,6 @@ public class GinRummyAndTonic_v10 implements GinRummyPlayer {
      * Class containing helper methods
      */
     static class MyGinRummyUtil extends GinRummyUtil {
-
-        public static ArrayList<ArrayList<Card>> getBestBestMeldSet(State state) {
-
-            ArrayList<ArrayList<ArrayList<Card>>> bestMeldSets;
-
-            bestMeldSets = MyGinRummyUtil.cardsToBestMeldSets(MyGinRummyUtil.bitstringToCards(state.getHand()));
-
-            //Select the meld configuration to submit.
-            ArrayList<ArrayList<Card>> bestMeldSet = null;
-            double minExpectedLayoff = Double.MAX_VALUE;
-            for(ArrayList<ArrayList<Card>> meldSet : bestMeldSets) {
-                ArrayList<Card> layoff = new ArrayList<>();
-
-                // Add all cards to layoff who could be inserted into our hand
-                for (ArrayList<Card> meld : meldSet) {
-                    // Meld of cards of same rank
-                    if (meld.get(0).getRank() == meld.get(1).getRank()) {
-                        layoff.addAll(
-                                MyGinRummyUtil.getSameRank(MyGinRummyUtil.bitstringToCards(
-                                        MyGinRummyUtil.addAll(state.getOppHand(), state.getUnaccounted())), meld.get(0)));
-                    }
-
-                    // Cards of same suit
-                    else {
-                        layoff.addAll(MyGinRummyUtil.getSameSuit(MyGinRummyUtil.bitstringToCards(
-                                MyGinRummyUtil.addAll(state.getOppHand(), state.getUnaccounted())),
-                                meld.get(0), 1));
-                        layoff.addAll(MyGinRummyUtil.getSameSuit(MyGinRummyUtil.bitstringToCards(
-                                MyGinRummyUtil.addAll(state.getOppHand(), state.getUnaccounted())),
-                                meld.get(meld.size() - 1), 1));
-                    }
-                }
-
-                /*
-                 * The sum of the deadwood of each layoff card * the probability that the opponent has said card
-                 * is expectedLayoff. If expectedLayoff < minExpectedLayoff, it is the new minimum, so assign
-                 * bestMeldSet to the current meld set. In the end, return the meld set with the lowest expectedLayoff.
-                 */
-                double expectedLayoff = 0d;
-                for(Card card : layoff) {
-                    //If the card is in an opponent meld, we don't expect them to try to lay it off.
-                    if(MyGinRummyUtil.canOpponentMeld(card, state)) continue;
-                    expectedLayoff += GinRummyUtil.getDeadwoodPoints(card) *
-                            MyGinRummyUtil.getProbabilityThatOpponentHasUnseenCard(card, state);
-                }
-
-                if(expectedLayoff < minExpectedLayoff) {
-                    minExpectedLayoff = expectedLayoff;
-                    bestMeldSet = meldSet;
-                }
-
-            }
-
-            return bestMeldSet;
-        }
 
         /**
          * @param cards   a hand of cards
@@ -5872,9 +5219,23 @@ public class GinRummyAndTonic_v10 implements GinRummyPlayer {
          * @return The decoded strategy
          */
         static int[] decoded(String hex) {
-            int[] strategy = new int[hex.length() + 1];
+            int[] strategy = new int[6];
             for (int i = 0; i < hex.length(); i++) {
                 strategy[i] = (int) Long.parseLong(hex.substring(i, i + 1), 16);
+            }
+
+            return strategy;
+        }
+
+        /**
+         * @param hex An encoded strategy
+         * @return The decoded strategy
+         */
+        static int[] decoded(int hex) {
+            String hexString = Integer.toHexString(hex);
+            int[] strategy = new int[6];
+            for (int i = 0; i < hexString.length(); i++) {
+                strategy[i] = (int) Long.parseLong(hexString.substring(i, i + 1), 16);
             }
 
             return strategy;
@@ -6000,100 +5361,15 @@ public class GinRummyAndTonic_v10 implements GinRummyPlayer {
     /**
      * Class to hold parameters for player strategy
      */
-    static class GeneralStrategy {
-
-        // <editor-fold desc="Instance Variables">
-        /**
-         * A map from the information set to the probability that we will knock
-         */
+    static class KnockStrat {
         private HashMap<String, Double> knockStrat;
-
-        /**
-         * A map from the information set to the probability that we will draw
-         */
-        private HashMap<String, Double> drawStrat;
-
-        /**
-         * Max deadwood a card can contribute to a hand while not being able to be
-         * melded within 2 turns, in order for us to avoid discarding it.
-         */
-        private int maxIsolatedSingleDeadwood;
-
-        /**
-         * After this turn has passed, we will no longer go out of our way to keep cards
-         * "protected" by maxIsolatedSingleDeadwood.
-         */
-        private int minIsolatedSingleDiscardTurn;
-
-        /**
-         * Max deadwood a card can contribute to a hand while not being able to be
-         * melded within 1 turn, in order for us to avoid discarding it.
-         */
-        private int maxSingleDeadwood;
-
-        /**
-         * After this turn has passed, we will no longer go out of our way to keep cards
-         * "protected" by maxSingleDeadwood.
-         */
-        private int minSingleDiscardTurn;
-
-        /**
-         * If the probability of getting a gin within x turns is >=
-         * minWaitForGinProbability, we should wait to try to get a gin. TODO: Figure
-         * out if this is even useful, and if it is, implement a way to calculate the
-         * probability of getting a gin within x turns. Maybe generalize to find the
-         * probability that total deadwood will become <= some y in x turns.
-         */
-        private double minWaitForGinProbability;
-
-        /**
-         * If our total deadwood is below this value, we should wait and try to
-         * undercut. TODO: Determine whether this would affect our strategy differently
-         * than minWaitForGinProbability. They might mostly overlap, in which case I
-         * only need to consider one of the 2.
-         */
-        private int minUndercutDeadwood;
-
-        /**
-         * Min turn to try to layoff cards
-         */
-        private int minLayoffTurn;
-
-        /**
-         * Minimum change in deadwood the face-up card can contribute in order for us to
-         * consider drawing it.
-         */
-        private int minPickupDifference;
-
-        private int canteloupe;
-        // </editor-fold>
 
         /**
          * Constructor
          */
 
-        GeneralStrategy(int[] strategy, HashMap<String, Double> knockStrat, HashMap<String, Double> drawStrat) {
-
+        KnockStrat(HashMap<String, Double> knockStrat) {
             this.knockStrat = knockStrat;
-            this.drawStrat = drawStrat;
-
-            this.maxIsolatedSingleDeadwood = strategy[1] <= 10 && strategy[1] > 0 ? strategy[1] : 10;
-            this.minIsolatedSingleDiscardTurn = Math.max(strategy[2], 0);
-
-            this.maxSingleDeadwood = strategy[3] <= 10 && strategy[3] > 0 ? strategy[3] : 10;
-            this.minSingleDiscardTurn = Math.max(strategy[4], 0);
-
-            // this.minWaitForGinProbability = minWaitForGinProbability <= 1 &&
-            // minWaitForGinProbability >= 0 ? minWaitForGinProbability : 0.0;
-
-            // this.minUndercutDeadwood = minUndercutDeadwood <= 10 && minUndercutDeadwood
-            // >= 0 ? minUndercutDeadwood : 10;
-
-            // this.minLayoffTurn = Math.max(minLayoffTurn, 0);
-
-            this.minPickupDifference = strategy[5] <= 10 && strategy[5] >= 0 ? strategy[5] : 0;
-            this.canteloupe = Math.max(strategy[6], 0);
-
         }
 
         // <editor-fold desc="Getters and Setters">
@@ -6103,10 +5379,6 @@ public class GinRummyAndTonic_v10 implements GinRummyPlayer {
 
         public double getKnockAt(String s) {
             return getAt(knockStrat, s);
-        }
-
-        public double getDrawAt(String s) {
-            return getAt(drawStrat, s);
         }
 
         public double getAt(HashMap<String, Double> strat, String s) {
@@ -6168,843 +5440,7 @@ public class GinRummyAndTonic_v10 implements GinRummyPlayer {
             }
         }
 
-        int getMaxIsolatedSingleDeadwood() {
-            return maxIsolatedSingleDeadwood;
-        }
-
-        int getMinIsolatedSingleDiscardTurn() {
-            return minIsolatedSingleDiscardTurn;
-        }
-
-        int getMaxSingleDeadwood() {
-            return maxSingleDeadwood;
-        }
-
-        int getMinSingleDiscardTurn() {
-            return minSingleDiscardTurn;
-        }
-
-        double getMinWaitForGinProbability() {
-            return minWaitForGinProbability;
-        }
-
-        int getMinUndercutDeadwood() {
-            return minUndercutDeadwood;
-        }
-
-        int getMinLayoffTurn() {
-            return minLayoffTurn;
-        }
-
-        int getMinPickupDifference() {
-            return minPickupDifference;
-        }
-
-        public void setMaxIsolatedSingleDeadwood(int maxIsolatedSingleDeadwood) {
-            this.maxIsolatedSingleDeadwood = maxIsolatedSingleDeadwood;
-        }
-
-        public void setMinIsolatedSingleDiscardTurn(int minIsolatedSingleDiscardTurn) {
-            this.minIsolatedSingleDiscardTurn = minIsolatedSingleDiscardTurn;
-        }
-
-        public void setMaxSingleDeadwood(int maxSingleDeadwood) {
-            this.maxSingleDeadwood = maxSingleDeadwood;
-        }
-
-        public void setMinSingleDiscardTurn(int minSingleDiscardTurn) {
-            this.minSingleDiscardTurn = minSingleDiscardTurn;
-        }
-
-        public void setMinWaitForGinProbability(double minWaitForGinProbability) {
-            this.minWaitForGinProbability = minWaitForGinProbability;
-        }
-
-        public void setMinUndercutDeadwood(int minUndercutDeadwood) {
-            this.minUndercutDeadwood = minUndercutDeadwood;
-        }
-
-        public void setMinLayoffTurn(int minLayoffTurn) {
-            this.minLayoffTurn = minLayoffTurn;
-        }
-
-        public void setMinPickupDifference(int minPickupDifference) {
-            this.minPickupDifference = minPickupDifference;
-        }
-
-        public int getCanteloupe() {
-            return canteloupe;
-        }
-
-        public void setCanteloupe(int canteloupe) {
-            this.canteloupe = canteloupe;
-        }
-
         // </editor-fold>
     }
-
-
-    /***************************************************************************************************
-     *
-     *                                      Discard Code
-     *
-     ****************************************************************************************************/
-
-    static double[] opponentExpectedImprovement = new double[13 * 16_384];
-    static int[] opponentCounts = new int[13 * 16_384];
-    static {
-        loadOpponentStats();
-    }
-
-    /**
-     * A class to store information about the worth of a discard
-     */
-    public static class DiscardMetric {
-        public DiscardMetric(Card discard, int immediateDeadwood, ArrayList<Card> hand) {
-            this.discard = discard;
-            this.immediateDeadwood = immediateDeadwood;
-            alwaysMelded = true;
-            this.hand = hand;
-        }
-
-        Card discard;           // The card to be discarded
-        int immediateDeadwood; 	// The deadwood that would remain in the hand if the card were discarded
-        double evDeadwood1;     // EV of deadwood after 1 turn
-        double evDeadwood2;     // EV of deadwood after 2 turn
-        ArrayList<Card> hand;   // The current hand without this discard
-        boolean alwaysMelded;   // Whether this card is in every meld in the current hand
-        double score; // The value of this discard (low numbers are better)
-
-        int deadwood_1_size;
-        TreeMap<Integer,Integer> deadwood_1 = new TreeMap<>(); // deadwood counts after one turn if we discard this card
-
-        int deadwood_2_size;
-        TreeMap<Integer,Integer> deadwood_2 = new TreeMap<>(); // deadwood counts after two turn if we discard this card
-
-        int deadwood_3_size;
-        TreeMap<Integer,Integer> deadwood_3 = new TreeMap<>(); // deadwood counts after two turn if we discard this card
-
-        // Stats about opponents hand
-        boolean opponentStatsCalculated;
-        int oppSameRank;       // number of cards in opponent's hand of same rank
-        int mySameRank;        // number of cards of same rank that are in my hand
-        int discardSameRank;   // number of cards of same rank that have been discarded
-        int upSuited;          // whether the card of the same suit with the next higher rank
-        // (0) has been discarded/does not exist, (1) is in opponent's hand, (2) is in my hand, or (3) is unseen
-        int up2Suited;         // whether the card of the same suit with a rank two higher
-        // (0) has been discarded/does not exist, (1) is in opponent's hand, (2) is in my hand, or (3) is unseen
-        int downSuited;        // whether the card of the same suit with the next lower rank
-        // (0) has been discarded/does not exist, (1) is in opponent's hand, (2) is in my hand, or (3) is unseen
-        int down2Suited;       // whether the card of the same suit with a rank two lower
-        // (0) has been discarded/does not exist, (1) is in opponent's hand, (2) is in my hand, or (3) is unseen
-
-        private void calculateOpponentStats(State state) {
-            opponentStatsCalculated = true;
-            long hand = state.getHand();
-            long opp = state.getOppHand();
-            long burried = state.getBuried();
-            for (int suit = 0; suit < 4; suit++) {
-                long c = 1L << (discard.getRank() + suit * 13);
-                if (( opp & c) != 0 ) oppSameRank++;
-                if (( hand & c) != 0 ) mySameRank++;
-                if (( burried & c) != 0 ) discardSameRank++;
-            }
-            if (discard.getRank() == 12) {
-                upSuited = 0;
-            }
-            else {
-                long c = 1L << (discard.getId() + 1);
-                if ((burried & c) != 0 ) upSuited = 0;
-                else if (( opp & c) != 0 ) upSuited = 1;
-                else if (( hand & c) != 0 ) upSuited = 2;
-                else upSuited = 3;
-            }
-            if (discard.getRank() >= 11) {
-                up2Suited = 0;
-            }
-            else {
-                long c = 1L << (discard.getId() + 2);
-                if ((burried & c) != 0 ) up2Suited = 0;
-                else if (( opp & c) != 0 ) up2Suited = 1;
-                else if (( hand & c) != 0 ) up2Suited = 2;
-                else upSuited = 3;
-            }
-            if (discard.getRank() == 0) {
-                downSuited = 0;
-            }
-            else {
-                long c = 1L << (discard.getId() - 1);
-                if ((burried & c) != 0 ) downSuited = 0;
-                else if (( opp & c) != 0 ) downSuited = 1;
-                else if (( hand & c) != 0 ) downSuited = 2;
-                else downSuited = 3;
-            }
-            if (discard.getRank() <= 1) {
-                down2Suited = 0;
-            }
-            else {
-                long c = 1L << (discard.getId() - 2);
-                if ((burried & c) != 0 ) down2Suited = 0;
-                else if (( opp & c) != 0 ) down2Suited = 1;
-                else if (( hand & c) != 0 ) down2Suited = 2;
-                else down2Suited = 3;
-            }
-        }
-
-        /**
-         * @return an index into the opponent EV improvment lookup table, based on card stats
-         */
-        int getIndex() {
-            int index = 0;
-            index += discard.getRank();
-            index <<= 2;
-            index += Math.min(oppSameRank,3);
-            index <<= 2;
-            index += Math.min(mySameRank,3);
-            index <<= 2;
-            index += Math.min(discardSameRank,3);
-            index <<= 2;
-            index += upSuited;
-            index <<= 2;
-            index += up2Suited;
-            index <<= 2;
-            index += downSuited;
-            index <<= 2;
-            index += down2Suited;
-            return index;
-        }
-
-        double getExpectedOpponentImprovement(State state) {
-            if (!opponentStatsCalculated) calculateOpponentStats(state);
-            if (opponentCounts[getIndex()] >= MINIMUM_OPPONENT_OBSERVATIONS)
-                return opponentExpectedImprovement[getIndex()];
-            else
-                return opponentExpectedImprovement[getIndex()] * opponentCounts[getIndex()] / MINIMUM_OPPONENT_OBSERVATIONS;
-        }
-    }
-
-
-    /**
-     * Return a list of DiscardMetric's for cards that would make good discards
-     * 	The list will contain only cards that are not melded (in at least one of the best meld configurations)
-     *  The list will be at most MAX_DISCARDS_TO_CONSIDER long
-     *  The list will not have any cards which, if discarded, would produce a deadwood improvement of less than
-     *     MAX_DEADWOOD_DIFFERENCE + [best possible improvement]
-     * @param state the current game state
-     * @return the discard metrics without a valid score (since we are not looking at the next draw card yet)
-     */
-    private static ArrayList<DiscardMetric> getPossibleDiscards(State state) {
-        ArrayList<Card> cards = MyGinRummyUtil.bitstringToCards(state.getHand());
-
-        ArrayList<DiscardMetric> metrics = new ArrayList<>();
-        // Check for gin...
-        for (Card discard: cards) {
-            if (discard.getId() != state.getFaceUp()) {
-                @SuppressWarnings("unchecked")
-                ArrayList<Card> nextHand = (ArrayList<Card>) cards.clone();
-                nextHand.remove(discard);
-                ArrayList<ArrayList<ArrayList<Card>>> bestMeldSets = GinRummyUtil.cardsToBestMeldSets(nextHand);
-                int deadwood = bestMeldSets.isEmpty() ? GinRummyUtil.getDeadwoodPoints(nextHand)
-                        : GinRummyUtil.getDeadwoodPoints(bestMeldSets.get(0), nextHand);
-                metrics.add(new DiscardMetric(discard, deadwood, nextHand));
-            }
-        }
-        metrics.sort((DiscardMetric o1, DiscardMetric o2) -> o1.immediateDeadwood - o2.immediateDeadwood);
-        int bestDeadwood = metrics.get(0).immediateDeadwood;
-        if (bestDeadwood == 0) {
-            // Gin is possible!
-            while (metrics.size() > 1) metrics.remove(metrics.size()-1);
-            return metrics;
-        }
-
-        ArrayList<ArrayList<ArrayList<Card>>> bestMeldSets = GinRummyUtil.cardsToBestMeldSets(cards);
-        if (bestMeldSets.isEmpty()) {
-            for (DiscardMetric dm: metrics) dm.alwaysMelded = false;
-        }
-        else {
-            for (int i = 0; i < bestMeldSets.size(); i++) {
-                HashSet<Card> melded = new HashSet<>();
-                for (int j = 0; j < bestMeldSets.get(i).size(); j++) {
-                    for (int k = 0; k < bestMeldSets.get(i).get(j).size(); k++) {
-                        melded.add(bestMeldSets.get(i).get(j).get(k));
-                    }
-                }
-                for (DiscardMetric dm: metrics) {
-                    if (!melded.contains(dm.discard)) dm.alwaysMelded = false;
-                }
-            }
-        }
-
-        // Remove bad discard choices
-        while (metrics.size() > MAX_DISCARDS_TO_CONSIDER ||
-                metrics.get(metrics.size()-1).immediateDeadwood > bestDeadwood + MAX_DEADWOOD_DIFFERENCE) {
-            metrics.remove(metrics.size()-1);
-        }
-        metrics.removeIf(dm -> dm.alwaysMelded);
-        return metrics;
-    }
-
-
-    /**
-     * Estimate the deadwood of an 11-card hand, but making melds out of the 11 cards,
-     * and then discarding the highest value deadwood card
-     * @param cards
-     * @return
-     */
-    static int estimateBestDeadwoodAfterDiscard(ArrayList<Card> cards) {
-        ArrayList<ArrayList<ArrayList<Card>>> bestMeldSets = GinRummyUtil.cardsToBestMeldSets(cards);
-        HashSet<Card> melded = new HashSet<>();
-        if (!bestMeldSets.isEmpty()) {
-            for (int i = 0; i < bestMeldSets.get(0).size(); i++) {
-                for (int j = 0; j < bestMeldSets.get(0).get(i).size(); j++) {
-                    melded.add(bestMeldSets.get(0).get(i).get(j));
-                }
-            }
-        }
-        int maxCard = 0;
-        int deadwood = 0;
-        for (Card card: cards) {
-            if (!melded.contains(card)) {
-                int d = GinRummyUtil.getDeadwoodPoints(card);
-                deadwood += d;
-                maxCard = Math.max(maxCard, d);
-            }
-        }
-        return deadwood - maxCard;
-
-    }
-
-    /**
-     * Get metrics that can be used to evaluate all discards
-     * @param state the current game state
-     * @return
-     */
-    public static ArrayList<DiscardMetric> getDiscardMetrics(State state) {
-        // Get potential discards
-        ArrayList<DiscardMetric> metrics = getPossibleDiscards(state);
-        if (metrics.size() == 1) return metrics;
-
-        double[] probTurns = new double[EXTRAPOLATE_TO_TURNS + 1];
-        double sum = 0;
-        if (state.getTurn() + 1 >= countTurns.length) {
-            probTurns[0] = 1;
-        }
-        else {
-            for (int i = 0; i < EXTRAPOLATE_TO_TURNS; i++) {
-                double p = 0;
-                if (i + state.getTurn() + 1 < countTurns.length) {
-                    p = (countTurns[i + state.getTurn() + 1] - countTurns[i + state.getTurn()])/countTurns[state.getTurn()];
-                }
-                else
-                    break;
-                probTurns[i] = p;
-                sum += p;
-            }
-            probTurns[EXTRAPOLATE_TO_TURNS] = 1 - sum;
-        }
-
-        // Estimate ev of deadwood after 1 turn
-        Thread[] threads = new Thread[THREAD_COUNT];
-        int currentThreads = 0;
-        for (DiscardMetric dm : metrics) {
-            threads[currentThreads] = new Thread(new Runnable() {
-                @Override
-                public void run() {
-                    for (int c = 0; c < 52; c++) {
-                        long cardBitstring = 1L << c;
-                        if ((cardBitstring & state.getUnseen()) != 0) {
-                            Card card = Card.getCard(c);
-                            dm.hand.add(card);
-                            int deadwood = estimateBestDeadwoodAfterDiscard(dm.hand);
-                            dm.deadwood_1.put(deadwood, dm.deadwood_1.getOrDefault(deadwood, 0) + 1);
-                            dm.deadwood_1_size++;
-                            dm.hand.remove(dm.hand.size() - 1);
-                        }
-                    }
-                }
-            });
-            threads[currentThreads].start();
-            currentThreads++;
-        }
-        for (int j = 0; j < currentThreads; j++) {
-            try {
-                if (threads[j] != null) threads[j].join();
-            }
-            catch (Exception e) {}
-            threads[j] = null;
-        }
-        currentThreads = 0;
-
-        // Score each discard for immediate deadwood
-        for (DiscardMetric dm: metrics) {
-            dm.score = probTurns[0] * dm.immediateDeadwood;
-            dm.score += dm.getExpectedOpponentImprovement(state);
-
-            int scenariosCounted = 0;
-            Integer lastKey = Integer.MIN_VALUE;
-            int lastKeyRemaining = 0;
-            double dwSum = 0;
-
-            if (EXTRAPOLATE_TO_TURNS >= 1) {
-
-                double scenariosToCount = Math.max(1.0, dm.deadwood_1_size /(1 * DEADWOOD_W));
-                while (scenariosCounted < scenariosToCount) {
-                    if (lastKeyRemaining == 0) {
-                        lastKey = dm.deadwood_1.higherKey(lastKey);
-                        lastKeyRemaining = dm.deadwood_1.get(lastKey);
-                    }
-                    int count = Math.min((int) Math.ceil(scenariosToCount - scenariosCounted), lastKeyRemaining);
-                    dwSum += count * lastKey;
-                    lastKeyRemaining -= count;
-                    scenariosCounted += count;
-                }
-                dm.evDeadwood1 = dwSum / scenariosCounted;
-                dm.score += (1 - probTurns[0]) * dm.evDeadwood1;
-            }
-        }
-
-        metrics.sort((dm1,dm2) -> dm1.score < dm2.score ? -1: dm1.score > dm2.score ? 1 : 0 );
-
-        // Remove less promising discards - If a card is the same suit as a better discard or is adjacent to a
-        // better discard, we will remove it from consideration
-        for (int j = 1; j < metrics.size(); j++) {
-            boolean remove = false;
-            for (int i = 0; !remove && i < j; i++) {
-                if (metrics.get(i).discard.getRank() == metrics.get(j).discard.getRank() ||
-                        (metrics.get(i).discard.getSuit() == metrics.get(j).discard.getSuit() &&
-                                Math.abs(metrics.get(i).discard.getRank() - metrics.get(j).discard.getRank()) <= 1)) remove = true;
-            }
-            if (remove) {
-                metrics.remove(j);
-                j--;
-            }
-        }
-
-        // Estimate ev of deadwood after 1 turn
-        for (DiscardMetric dm : metrics) {
-            threads[currentThreads] = new Thread(new Runnable() {
-                @Override
-                public void run() {
-                    for (int c = 0; c < 52; c++) {
-                        long cardBitstring = 1L << c;
-                        if ((cardBitstring & state.getUnseen()) != 0) {
-
-                            Card card = Card.getCard(c);
-                            dm.hand.add(card);
-                            for (int c2 = c + 1; c2 < 52; c2++) {
-                                long card2Bitstring = 1L << c2;
-                                if ((card2Bitstring & state.getUnseen()) != 0) {
-                                    Card card2 = Card.getCard(c2);
-                                    dm.hand.add(card2);
-                                    int deadwood = estimateBestDeadwoodAfterDiscard(dm.hand);
-                                    dm.deadwood_2.put(deadwood, dm.deadwood_2.getOrDefault(deadwood, 0) + 1);
-                                    dm.deadwood_2_size++;
-                                    dm.hand.remove(dm.hand.size() - 1);
-                                }
-                            }
-                            dm.hand.remove(dm.hand.size() - 1);
-                        }
-                    }
-                }
-            });
-            threads[currentThreads].start();
-            currentThreads++;
-        }
-        for (int j = 0; j < currentThreads; j++) {
-            try {
-                if (threads[j] != null) threads[j].join();
-            }
-            catch (Exception e) {}
-            threads[j] = null;
-        }
-        currentThreads = 0;
-
-
-        // Estimate ev of deadwood after 1 turn
-        for (DiscardMetric dm : metrics) {
-            threads[currentThreads] = new Thread(new Runnable() {
-                @Override
-                public void run() {
-                    for (int c = 0; c < 52; c++) {
-                        long cardBitstring = 1L << c;
-                        if ((cardBitstring & state.getUnseen()) != 0) {
-
-                            Card card = Card.getCard(c);
-                            dm.hand.add(card);
-                            for (int c2 = c + 1; c2 < 52; c2++) {
-                                long card2Bitstring = 1L << c2;
-                                if ((card2Bitstring & state.getUnseen()) != 0) {
-                                    Card card2 = Card.getCard(c2);
-                                    dm.hand.add(card2);
-                                    for (int c3 = c2 + 1; c3 < 52; c3++) {
-                                        long card3Bitstring = 1L << c3;
-                                        if ((card3Bitstring & state.getUnseen()) != 0) {
-                                            Card card3 = Card.getCard(c3);
-                                            dm.hand.add(card3);
-                                            int deadwood = estimateBestDeadwoodAfterDiscard(dm.hand);
-                                            dm.deadwood_3.put(deadwood, dm.deadwood_3.getOrDefault(deadwood, 0) + 1);
-                                            dm.deadwood_3_size++;
-                                            dm.hand.remove(dm.hand.size() - 1);
-                                        }
-                                    }
-                                    dm.hand.remove(dm.hand.size() - 1);
-                                }
-                            }
-                            dm.hand.remove(dm.hand.size() - 1);
-                        }
-                    }
-                }
-            });
-            threads[currentThreads].start();
-            currentThreads++;
-        }
-        for (int j = 0; j < currentThreads; j++) {
-            try {
-                if (threads[j] != null) threads[j].join();
-            }
-            catch (Exception e) {}
-            threads[j] = null;
-        }
-        currentThreads = 0;
-
-
-        // Score each discard for immediate deadwood
-        for (DiscardMetric dm: metrics) {
-            threads[currentThreads] = new Thread(new Runnable() {
-                @Override
-                public void run() {
-                    dm.score = probTurns[0] * dm.immediateDeadwood;
-                    dm.score = probTurns[1] * dm.evDeadwood1;
-                    dm.score += dm.getExpectedOpponentImprovement(state);
-
-                    // Calc turn 2 EV deadwood
-                    int scenariosCounted = 0;
-                    Integer lastKey = Integer.MIN_VALUE;
-                    int lastKeyRemaining = 0;
-                    double dwSum = 0;
-                    double scenariosToCount = Math.max(1.0, dm.deadwood_2_size / DEADWOOD_W2);
-                    while (scenariosCounted < scenariosToCount) {
-                        if (lastKeyRemaining == 0) {
-                            lastKey = dm.deadwood_2.higherKey(lastKey);
-                            if (lastKey == null) break;
-
-                            lastKeyRemaining = dm.deadwood_2.get(lastKey);
-                        }
-                        int count = Math.min((int) Math.ceil(scenariosToCount - scenariosCounted), lastKeyRemaining);
-                        dwSum += count * lastKey;
-                        lastKeyRemaining -= count;
-                        scenariosCounted += count;
-                    }
-
-                    if (scenariosCounted < scenariosToCount) {
-                        int count = (int) Math.ceil(scenariosToCount - scenariosCounted);
-                        dwSum += count * dm.evDeadwood1;
-                        scenariosCounted += count;
-                    }
-                    double evTurn2 = dwSum / scenariosCounted;
-                    dm.score += probTurns[2] * evTurn2;
-
-                    // Calc turn 2 EV deadwood
-                    scenariosCounted = 0;
-                    lastKey = Integer.MIN_VALUE;
-                    lastKeyRemaining = 0;
-                    dwSum = 0;
-                    scenariosToCount = Math.max(1.0, dm.deadwood_3_size / DEADWOOD_W3);
-                    while (scenariosCounted < scenariosToCount) {
-                        if (lastKeyRemaining == 0) {
-                            lastKey = dm.deadwood_3.higherKey(lastKey);
-                            if (lastKey == null) break;
-
-                            lastKeyRemaining = dm.deadwood_3.get(lastKey);
-                        }
-                        int count = Math.min((int) Math.ceil(scenariosToCount - scenariosCounted), lastKeyRemaining);
-                        dwSum += count * lastKey;
-                        lastKeyRemaining -= count;
-                        scenariosCounted += count;
-                    }
-
-                    if (scenariosCounted < scenariosToCount) {
-                        int count = (int) Math.ceil(scenariosToCount - scenariosCounted);
-                        dwSum += count * evTurn2;
-                        scenariosCounted += count;
-                    }
-                    double evTurn3 = dwSum / scenariosCounted;
-                    dm.score += probTurns[3] * evTurn3;
-
-                    for (int i = 4; i <= EXTRAPOLATE_TO_TURNS; i++) {
-                        //dm.score += probTurns[i] * Math.max(0.0,dm.evDeadwood1 - (dm.evDeadwood1 - evTurn2) * (i-2) * DEADWOOD_W3);
-                        dm.score += probTurns[i] * Math.max(0.0,evTurn3 - (evTurn2 - evTurn3) * (i-3) * DEADWOOD_W4);
-                    }
-                }
-            });
-            threads[currentThreads].start();
-            currentThreads++;
-        }
-        for (int j = 0; j < currentThreads; j++) {
-            try {
-                if (threads[j] != null) threads[j].join();
-            }
-            catch (Exception e) {}
-            threads[j] = null;
-        }
-        currentThreads = 0;
-
-
-        return metrics;
-    }
-
-    // Create an array of cards from a space separated string representation
-    public static Card[] getCards(String description) {
-        String[] tokens = description.split(" ");
-        Card[] retVal = new Card[tokens.length];
-        for (int i = 0; i < tokens.length; i++) {
-            retVal[i] = getCard(tokens[i]);
-        }
-        return retVal;
-    }
-
-    // Return the card corresponding to the string representation
-    public static Card getCard(String description) {
-        int suit = 0;
-        while (!Card.suitNames[suit].equals(description.substring(1,2))) {
-            suit++;
-        }
-        int rank = 0;
-        while (!Card.rankNames[rank].equals(description.substring(0,1))) {
-            rank++;
-        }
-        return Card.getCard(rank, suit);
-    }
-
-    // Test routine
-    public static void main(String[] args) {
-        GinRummyAndTonic_v10 agent = new GinRummyAndTonic_v10();
-        agent.startGame(0,0,getCards("JD, 8S, QC, AS, 3H, 2D, 7D, KS, 6C, 4C"));
-
-        agent.reportDraw(0, getCard("6H"));
-        agent.reportDiscard(0, getCard("QC"));
-
-        agent.reportDraw(1, null); // unseen 6D
-        agent.reportDiscard(1, getCard("KH"));
-
-        agent.reportDraw(0, getCard("3S"));
-        System.out.println("\nScenario 1 (page 1 of analysis)");
-        System.out.println("[AS, 2D, 3H, 3S, 4C, 6C, 6H, 7D, 8S, JD, KS] ");
-        evaluateDiscards(agent);
-        agent.reportDiscard(0, getCard("JD"));
-
-        agent.reportDraw(1, null); // unseen AC
-        agent.reportDiscard(1, getCard("TC"));
-
-        agent.reportDraw(0, getCard("2S"));
-        agent.reportDiscard(0, getCard("KS"));
-
-        agent.reportDraw(1, null); // unseen 7S
-        agent.reportDiscard(1, getCard("9H"));
-
-        agent.reportDraw(0, getCard("7H"));
-        System.out.println("\nScenario 2 (page 1 of analysis)");
-        System.out.println("[[AS, 2S, 3S], [2D, 3H, 4C, 6C, 6H, 7D, 7H, 8S]] ");
-        evaluateDiscards(agent);
-        agent.reportDiscard(0, getCard("8S"));
-
-        agent.startGame(0, 1, getCards("6C, 4H, 3D, AD, 6H, QC, KH, JS, 4D, 5S"));
-        agent.reportDraw(1, getCard("2H"));
-        agent.reportDiscard(1, getCard("9S"));
-
-        agent.reportDraw(0, getCard("5C"));
-        agent.reportDiscard(0, getCard("KH"));
-
-        agent.reportDraw(1, null); // unseen TD
-        agent.reportDiscard(1, getCard("8C"));
-
-        agent.reportDraw(0, getCard("8S"));
-        System.out.println("\nScenario 3 (page 2 of analysis)");
-        System.out.println("[AD, 3D, 4H, 4D, 5C, 5S, 6C, 6H, 8S, JS, QC]");
-        evaluateDiscards(agent);
-        agent.reportDiscard(0, getCard("JS"));
-
-        agent.startGame(0, 0, getCards("JS, TD, AD, 7S, 3C, KC, TS, 9H, QS, 2S"));
-
-        agent.reportDraw(0, getCard("8H"));
-        agent.reportDiscard(0, getCard("KC"));
-
-        agent.reportDraw(1, getCard("KC"));
-        agent.reportDiscard(1, getCard("JD"));
-
-        agent.reportDraw(0, getCard("9C"));
-        agent.reportDiscard(0, getCard("TD"));
-
-        agent.reportDraw(1, null); // unseen 4C
-        agent.reportDiscard(1, getCard("KS"));
-
-        agent.reportDraw(0, getCard("KS"));
-        System.out.println("\nScenario 4 (page 3 of analysis)");
-        System.out.println("[[TS, JS, QS, KS], [AD, 2S, 3C, 7S, 8H, 9C, 9H]]");
-        evaluateDiscards(agent);
-        agent.reportDiscard(0, getCard("9C"));
-
-        agent.startGame(0, 0, getCards("AD, QD, 3S, 2D, 4S, 4C, QH, 8D, JS, 2S"));
-        agent.reportDiscard(1, getCard("7S"));
-
-        agent.reportDraw(1, null); // unseen 9S
-        agent.reportDiscard(1, getCard("TD"));
-
-        agent.reportDraw(0, getCard("JH"));
-        agent.reportDiscard(0, getCard("QD"));
-
-        agent.reportDraw(1, null); // unseen 2C
-        agent.reportDiscard(1, getCard("8S"));
-
-        agent.reportDraw(0, getCard("8S"));
-        System.out.println("\nScenario 5 (page 3 of analysis)");
-        System.out.println("[[2S, 3S, 4S], [AD, 2D, 4C, 8D, 8S, JH, JS, QH]]");
-        evaluateDiscards(agent);
-        agent.reportDiscard(0, getCard("QH"));
-
-        agent.reportDraw(1, null); // unseen QC
-        agent.reportDiscard(1, getCard("QC"));
-
-        agent.reportDraw(0, getCard("KC"));
-        agent.reportDiscard(0, getCard("KC"));
-
-        agent.reportDraw(1, null); // unseen 8H
-        agent.reportDiscard(1, getCard("7D"));
-
-        agent.reportDraw(0, getCard("7H"));
-        System.out.println("\nScenario 6 (page 3 of analysis)");
-        System.out.println("[[2S, 3S, 4S], [AD, 2D, 4C, 7H, 8S, 8D, JS, JH]]");
-        evaluateDiscards(agent);
-
-
-        agent.startGame(0,0,getCards("6H, TD, 8C, 6C, TH, 7H, 7D, 2C, KD, JD"));
-
-        agent.reportDiscard(1, getCard("9H"));
-
-        agent.reportDraw(1, null); // unseen 3H
-        agent.reportDiscard(1, getCard("QS"));
-
-        agent.reportDraw(0, getCard("9C"));
-        agent.reportDiscard(0, getCard("KD"));
-
-        agent.reportDraw(1, null); // unseen AD
-        agent.reportDiscard(1, getCard("JH"));
-
-        agent.reportDraw(0, getCard("KH"));
-        agent.reportDiscard(0, getCard("KH"));
-
-        agent.reportDraw(1, null); // unseen JS
-        agent.reportDiscard(1, getCard("8H"));
-
-        agent.reportDraw(0, getCard("8H"));
-        System.out.println("\nScenario 6 (page 3 of analysis)");
-        System.out.println("[[6H, 7H, 8H], [2C, 6C, 7D, 8C, 9C, TH, TD, JD]]");
-        evaluateDiscards(agent);
-
-        agent.reportDiscard(0, getCard("JD"));
-
-
-        agent.startGame(0,0,getCards("AS, 2C, 3D, 4H, 5S, 6C, 7D, 8H, 9C, QS, QC"));
-        System.out.println("\nScenario Duo");
-        System.out.println("AS, 2C, 3D, 4H, 5S, 6C, 7D, 8H, 9C, QS, QC");
-        evaluateDiscards(agent);
-
-        agent.startGame(0,0,getCards("AS, 2C, 3D, 4H, 5S, 6C, 7D, 8H, JC, JS, QC"));
-        System.out.println("\nScenario Trio");
-        System.out.println("AS, 2C, 3D, 4H, 5S, 6C, 7D, 8H, JC, JS, QC");
-        evaluateDiscards(agent);
-
-
-        agent.startGame(0,0,getCards("AS, 2C, 3D, 4H, 5S, 6C, 7D, JC, JS, QC, QS"));
-        System.out.println("\nScenario Quad");
-        System.out.println("AS, 2C, 3D, 4H, 5S, 6C, 7D, JC, JS, QC, QS");
-        evaluateDiscards(agent);
-
-        agent.startGame(0,0,getCards("AS, 2S, 3S, 4H, 5H, 6H, 7H, JC, JS, JD, JH"));
-        System.out.println("\nAll in melds");
-        System.out.println("AS, 2S, 3S, 4H, 5H, 6H, 7H, JC, JS, JD, JH");
-        evaluateDiscards(agent);
-    }
-
-    static void evaluateDiscards(GinRummyAndTonic_v10 agent) {
-        // Simulate x turns into the future
-        ArrayList<DiscardMetric> metrics = getDiscardMetrics(agent.state);
-
-        for (int i = 0; i < metrics.size(); i++) {
-            System.out.print(metrics.get(i).discard);
-            System.out.println("\t" + metrics.get(i).score);
-        }
-
-    }
-
-    void updateOpponentStats(ArrayList<Card> opponentCards) {
-        synchronized(GinRummyAndTonic_v10.class) {
-            ArrayList<DiscardMetric> metrics = getDiscardMetrics(state);
-
-            ArrayList<ArrayList<ArrayList<Card>>> bestMeldSets = GinRummyUtil.cardsToBestMeldSets(opponentCards);
-            int oppDeadwood = bestMeldSets.isEmpty() ? GinRummyUtil.getDeadwoodPoints(opponentCards)
-                    : GinRummyUtil.getDeadwoodPoints(bestMeldSets.get(0), opponentCards);
-
-            for (DiscardMetric dm: metrics) {
-                double oppEv = dm.getExpectedOpponentImprovement(state);
-                opponentCards.add(dm.discard);
-                int oppNewDeadwood = estimateBestDeadwoodAfterDiscard(opponentCards);
-                double improvement = oppDeadwood - oppNewDeadwood;
-                int ndx = dm.getIndex();
-                opponentExpectedImprovement[ndx] = (opponentExpectedImprovement[ndx] * opponentCounts[ndx] + improvement) / (opponentCounts[ndx]+1);
-                opponentCounts[ndx]++;
-                opponentCards.remove(opponentCards.size() - 1);
-            }
-        }
-    }
-
-    static synchronized void loadOpponentStats() {
-        try {
-            Scanner sc = new Scanner(new File("src/opponentEV.txt"));
-            int ndx = sc.nextInt();
-            while (ndx != -1) {
-                opponentExpectedImprovement[ndx] = sc.nextDouble();
-                ndx = sc.nextInt();
-            }
-            while (sc.hasNext()) {
-                ndx = sc.nextInt();
-                opponentCounts[ndx] = sc.nextInt();
-
-            }
-	    	/*
-	    	int n = sc.nextInt();
-	    	for (int i = 0; i < n; i++) {
-	    		opponentExpectedImprovement[i] = sc.nextDouble();
-	    	}
-	    	n = sc.nextInt();
-	    	for (int i = 0; i < n; i++) {
-	    		opponentCounts[i] = sc.nextInt();
-	    	}*/
-            sc.close();
-        }
-        catch (Exception e) {
-            System.err.println("Error loading stats " + e);
-        }
-    }
-
-    static synchronized void writeOpponentStats() {
-        try {
-            PrintWriter pw = new PrintWriter("src/opponentEV.txt");
-            for (int i = 0; i < opponentExpectedImprovement.length; i++) {
-                if (opponentExpectedImprovement[i] > 0) {
-                    pw.println(i + "\t" + opponentExpectedImprovement[i]);
-                }
-            }
-            pw.println(-1);
-            for (int i = 0; i < opponentCounts.length; i++) {
-                if (opponentCounts[i] > 0) {
-                    pw.println(i + "\t" + opponentCounts[i]);
-                }
-            }
-            pw.close();
-        }
-        catch (Exception e) {
-            System.err.println("Error writing stats " + e.getMessage());
-        }
-    }
 }
+

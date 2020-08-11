@@ -1,6 +1,7 @@
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.PrintWriter;
+import java.math.BigInteger;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Scanner;
@@ -16,6 +17,8 @@ public abstract class Strategy {
 
 	protected Map<String, Double> sumRegret = new HashMap<>();     // The sum of the counterfactual regret for a string equal to the infoset plus the action
 	protected Map<String, Double> sumStrategy = new TreeMap<>();   // From sigma_bar^t for a string equal to the infoset and the action
+	protected Map<String, Long> frequencies = new TreeMap<>();
+	protected Long total_visits = 0L;
 	// This is just the numerator of the equation given
 
 	/**
@@ -102,6 +105,11 @@ public abstract class Strategy {
 					throw new IllegalArgumentException("The infoset for the actions must be set");
 				}
 				action.p = sumStrategy.getOrDefault(action.infosetAndAction, 0.0);
+				total_visits++;
+				if(frequencies.containsKey(action.infosetAndAction))
+					frequencies.replace(action.infosetAndAction, frequencies.get(action.infosetAndAction) + 1L);
+				else
+					frequencies.put(action.infosetAndAction, 1L);
 			}
 		}
 		normalize(actions);

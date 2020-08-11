@@ -47,11 +47,11 @@ public class GinRummyUtil {
 	/**
 	 * Bonus for melding all cards before knocking
 	 */
-	public static final int GIN_BONUS = 25;
+	public static int GIN_BONUS = 25;
 	/**
 	 * Bonus for undercutting (having less than or equal the deadwood of knocking opponent)
 	 */
-	public static final int UNDERCUT_BONUS = 25;
+	public static int UNDERCUT_BONUS = 25;
 	/**
 	 * Maximum deadwood points permitted for knocking
 	 */
