@@ -12,17 +12,31 @@ public class Driver {
 		final int EVALUATION_GAMES_PER_ROUND = 25_000;
         final int CONCURRENT_THREADS = 8;
 
-        /*  |										  | *
-         *  | Change THESE numbers for the experiment | *
-         *  v										  v *
-         *												*/
+        if(args.length >= 2) {
+			try {
+				GinRummyUtil.GIN_BONUS = Integer.parseInt(args[0]);
+				GinRummyUtil.UNDERCUT_BONUS = Integer.parseInt(args[1]);
+			} catch (Exception e) {
+				System.err.println(e.getMessage());
+				return;
+			}
+		}
+        else {
+			/*  |										  | *
+			 *  | Change THESE numbers for the experiment | *
+			 *  v		(or use command line arguments)	  v *
+			 *												*/
 			GinRummyUtil.GIN_BONUS = 25; //Default is 25
 			GinRummyUtil.UNDERCUT_BONUS = 25; //Default is 25
 
-		/*  ^										  ^ *
-		 *  | Change THESE numbers for the experiment | *
-		 *  |										  | *
-		 *												*/
+			/*  ^										  ^ *
+			 *  | Change THESE numbers for the experiment | *
+			 *  |		(or use command line arguments)	  | *
+			 *												*/
+		}
+
+		System.out.printf("Starting driver with Gin Bonus %d and Undercut bonus %d.\n", GinRummyUtil.GIN_BONUS, GinRummyUtil.UNDERCUT_BONUS);
+
 
 		Player basePlayer = new Player(new StrategyDraw(false), new StrategyDiscard(false), new StrategyKnock(false));
 		Player cfrPlayer = new Player(new StrategyDrawResearch(false), new StrategyDiscardResearch(false), new StrategyKnockResearch(false));
