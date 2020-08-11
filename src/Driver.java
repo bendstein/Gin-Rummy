@@ -80,7 +80,7 @@ public class Driver {
 			System.out.println("EV of CFR player vs. base player in " + (round+1) + " is " + util/EVALUATION_GAMES_PER_ROUND);
 
 			Files.createDirectories(Paths.get("Research/"));
-			cfrPlayer.getKnockStrategy().toFile(String.format("Research/Knock_GinBonus_%d_UndercutBonus_%d.txt", GinRummyUtil.GIN_BONUS, GinRummyUtil.UNDERCUT_BONUS));
+			cfrPlayer.getKnockStrategy().toFile(String.format("Research/GinBonus_%d_UndercutBonus_%d.txt", GinRummyUtil.GIN_BONUS, GinRummyUtil.UNDERCUT_BONUS));
 		}
 
 		/*
