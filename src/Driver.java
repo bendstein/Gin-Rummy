@@ -9,7 +9,7 @@ public class Driver {
 	public static void main(String[] args) throws IOException, InterruptedException {
 		final int TOTAL_ROUNDS = 50;
 		final int TRAINING_GAMES_PER_ROUND = 250_000;
-		final int EVALUATION_GAMES_PER_ROUND = 25_000;
+		final int EVALUATION_GAMES_PER_ROUND = 20_000;
         final int CONCURRENT_THREADS = 8;
 
         if(args.length >= 2) {

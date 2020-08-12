@@ -38,15 +38,9 @@ public class StrategyKnockResearch extends StrategyKnock {
         ActionKnock[] strategy;
 
         /*
-         * If deadwood == 0, we have gin. Always knock.
-         */
-        if (deadwood == 0)
-            strategy = new ActionKnock[] { new ActionKnock(true, 1.0, null)};
-
-        /*
          * If deadwood > 10, we can't knock. Never knock.
          */
-        else if (deadwood  > GinRummyUtil.MAX_DEADWOOD)
+        if (deadwood  > GinRummyUtil.MAX_DEADWOOD)
             strategy = new ActionKnock[] {new ActionKnock(false, 1.0, null)};
 
         else {
