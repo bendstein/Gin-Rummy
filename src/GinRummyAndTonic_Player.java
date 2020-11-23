@@ -3,7 +3,6 @@ import java.io.PrintWriter;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Random;
@@ -17,9 +16,8 @@ import java.util.stream.Collectors;
 /**
  * Class containing the player
  */
-public class GinRummyAndTonic_v8 implements GinRummyPlayer {
+public class GinRummyAndTonic_Player implements GinRummyPlayer {
 
-    // TODO: Tune these parameters
     static int MAX_DISCARDS_TO_CONSIDER = 6;
     static int MAX_DEADWOOD_DIFFERENCE = 8;
     static int EXTRAPOLATE_TO_TURNS = 8;
@@ -68,7 +66,7 @@ public class GinRummyAndTonic_v8 implements GinRummyPlayer {
     private ArrayList<ArrayList<Card>> oppMelds;
     // </editor-fold>
 
-    public GinRummyAndTonic_v8() {
+    public GinRummyAndTonic_Player() {
         HashMap<String, Double> knockStrat = new HashMap<String, Double>() {
             {
                 put("9_49_9", 0.000);
@@ -3840,14 +3838,6 @@ public class GinRummyAndTonic_v8 implements GinRummyPlayer {
         ArrayList<ArrayList<ArrayList<Card>>> bestMeldSets;
         int deadwood;
 
-        /*
-         * TODO:
-         *  -Try to find the best melds to minimize opponent layoff. Make sure to balance with deadwood to prevent undercut.
-         *          -Based off of what we know is in their hand, and what cards we haven't seen. Account for # of remaining cards.
-         *              What's the probability that the opp has a given unseen card?
-         *          -Runs have more potential locations for layoff than 3 or 4 of a kind.
-         *          -Laying off a low-value card is less important than a high-value one. May not be significant.
-         */
         bestMeldSets = MyGinRummyUtil.cardsToBestMeldSets(MyGinRummyUtil.bitstringToCards(state.getHand()));
         deadwood = bestMeldSets.isEmpty() ?
                 MyGinRummyUtil.getDeadwoodPoints(MyGinRummyUtil.bitstringToCards(state.getHand())) :
@@ -6692,7 +6682,7 @@ public class GinRummyAndTonic_v8 implements GinRummyPlayer {
 
     // Test routine
     public static void main(String[] args) {
-        GinRummyAndTonic_v8 agent = new GinRummyAndTonic_v8();
+        GinRummyAndTonic_Player agent = new GinRummyAndTonic_Player();
         agent.startGame(0,0,getCards("JD, 8S, QC, AS, 3H, 2D, 7D, KS, 6C, 4C"));
 
         agent.reportDraw(0, getCard("6H"));
@@ -6840,7 +6830,7 @@ public class GinRummyAndTonic_v8 implements GinRummyPlayer {
         evaluateDiscards(agent);
     }
 
-    static void evaluateDiscards(GinRummyAndTonic_v8 agent) {
+    static void evaluateDiscards(GinRummyAndTonic_Player agent) {
         // Simulate x turns into the future
         ArrayList<DiscardMetric> metrics = getDiscardMetrics(agent.state);
 
@@ -6852,7 +6842,7 @@ public class GinRummyAndTonic_v8 implements GinRummyPlayer {
     }
 
     void updateOpponentStats(ArrayList<Card> opponentCards) {
-        synchronized(GinRummyAndTonic_v8.class) {
+        synchronized(GinRummyAndTonic_Player.class) {
             ArrayList<DiscardMetric> metrics = getDiscardMetrics(state);
 
             ArrayList<ArrayList<ArrayList<Card>>> bestMeldSets = GinRummyUtil.cardsToBestMeldSets(opponentCards);
