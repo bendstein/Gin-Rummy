@@ -4597,6 +4597,19 @@ public class GinRummyAndTonic_Player implements GinRummyPlayer {
         public void increaseTopCard() {
             topCard++;
         }
+
+        public void setSeen(long seen) {
+            this.seen = seen;
+        }
+
+        public void setTurn(int turn) {
+            this.turn = turn;
+        }
+
+        public void setNum_remaining(int num_remaining) {
+            this.num_remaining = num_remaining;
+        }
+
         // </editor-fold>
 
     }

@@ -1,17 +1,17 @@
 
-public class StrategyDrawResearch extends StrategyDraw {
+public class StrategyDrawFinal extends StrategyDraw {
 
     /**
      * In the default strategy, we are not training
      */
-    public StrategyDrawResearch(boolean training) {
+    public StrategyDrawFinal(boolean training) {
         super(training);
     }
 
     @Override
     public ActionDraw[] getStrategy(GameState state) {
         ActionDraw[] strategy = new ActionDraw[1];
-        GinRummyAndTonic_v10.State state2 = state.getCurrentPlayerObject().state2;
+        GinRummyAndTonic_Player.State state2 = state.getCurrentPlayerObject().state2;
 
         /*
          * Let the improvement from drawing card c be defined as the change in deadwood
@@ -26,8 +26,8 @@ public class StrategyDrawResearch extends StrategyDraw {
          * draw it. Otherwise, draw face-down.
          */
 
-        if(GinRummyPlayerImpl.MyGinRummyUtil.getImprovement(state2.getHand(), state2.getFaceUp()) > 0 &&
-                GinRummyPlayerImpl.MyGinRummyUtil.makesNewMeld(state2.getHand(), state2.getFaceUp())) {
+        if(GinRummyAndTonic_Player.MyGinRummyUtil.getImprovement(state2.getHand(), state2.getFaceUp()) > 0 &&
+                GinRummyAndTonic_Player.MyGinRummyUtil.makesNewMeld(state2.getHand(), state2.getFaceUp())) {
             strategy[0] = new ActionDraw(true, 1.0, null);
         }
         else {

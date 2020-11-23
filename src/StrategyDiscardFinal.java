@@ -12,13 +12,13 @@ import java.util.ArrayList;
  *
  * @author jjb24
  */
-public class StrategyDiscardNew extends StrategyDiscard {
+public class StrategyDiscardFinal extends StrategyDiscard {
     static final int DISCARD_THRESHOLD = 7; // Do not discard unmatchable cards, unless they are at least a seven
 
     /**
      * In the default strategy, we are not training
      */
-    public StrategyDiscardNew(boolean training) {
+    public StrategyDiscardFinal(boolean training) {
         super(training);
     }
 
@@ -27,10 +27,10 @@ public class StrategyDiscardNew extends StrategyDiscard {
      */
     @Override
     public ActionDiscard[] getStrategy(GameState state) {
-        ArrayList<GinRummyAndTonic_v10.DiscardMetric> metrics =
-                GinRummyAndTonic_v10.getDiscardMetrics(state.getCurrentPlayerObject().state2);
-        metrics.sort((GinRummyAndTonic_v10.DiscardMetric dm1, GinRummyAndTonic_v10.DiscardMetric dm2) -> dm1.score < dm2.score?-1:dm1.score>dm2.score?1:0);
-        return new ActionDiscard[]{new ActionDiscard(GinRummyAndTonic_v10.MyGinRummyUtil.idsToBitstring(new int[]{metrics.get(0).discard.getId()}), 1.0, null)};
+        ArrayList<GinRummyAndTonic_Player.DiscardMetric> metrics =
+                GinRummyAndTonic_Player.getDiscardMetrics(state.getCurrentPlayerObject().state2);
+        metrics.sort((GinRummyAndTonic_Player.DiscardMetric dm1, GinRummyAndTonic_Player.DiscardMetric dm2) -> dm1.score < dm2.score?-1:dm1.score>dm2.score?1:0);
+        return new ActionDiscard[]{new ActionDiscard(GinRummyAndTonic_Player.MyGinRummyUtil.idsToBitstring(new int[]{metrics.get(0).discard.getId()}), 1.0, null)};
     }
 
 

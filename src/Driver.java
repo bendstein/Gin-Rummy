@@ -39,7 +39,7 @@ public class Driver {
 
 
 		Player basePlayer = new Player(new StrategyDraw(false), new StrategyDiscard(false), new StrategyKnock(false));
-		Player cfrPlayer = new Player(new StrategyDrawResearch(false), new StrategyDiscardResearch(false), new StrategyKnockResearch(false));
+		Player cfrPlayer = new Player(new StrategyDrawFinal(false), new StrategyDiscardFinal(false), new StrategyKnockFinal(false));
 
 		for (int round = 0; round < TOTAL_ROUNDS; round++) {
 			// Train for a while
@@ -94,8 +94,7 @@ public class Driver {
 			System.out.println("EV of CFR player vs. base player in " + (round+1) + " is " + util/EVALUATION_GAMES_PER_ROUND);
 
 			Files.createDirectories(Paths.get("Research/"));
-			if(cfrPlayer.getKnockStrategy() instanceof StrategyKnockResearch)
-				((StrategyKnockResearch) cfrPlayer.getKnockStrategy()).toExcel(String.format("Research/GinBonus_%d_UndercutBonus_%d.xlsx", GinRummyUtil.GIN_BONUS, GinRummyUtil.UNDERCUT_BONUS));
+			cfrPlayer.getKnockStrategy().toFile(String.format("Research/GinBonus_%d_UndercutBonus_%d.txt", GinRummyUtil.GIN_BONUS, GinRummyUtil.UNDERCUT_BONUS));
 
 		}
 

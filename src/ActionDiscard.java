@@ -9,7 +9,7 @@ public class ActionDiscard extends Action {
     /**
      * 	Constructor
      * 
-     * @param cardAsBitString a bitstring representation of the card to be discarded in this action
+     * @param cardAsBitstring a bitstring representation of the card to be discarded in this action
      * @param p the probability that this action will be taken in a strategy
      * @param infoset the infoset at the parent node of this action in the Game Tree
      */

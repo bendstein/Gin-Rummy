@@ -54,7 +54,7 @@ public class PshUtil {
 	/**
 	 * Determine if the face up card would become part of a meld
 	 *  
-	 * @param GameState the current state
+	 * @param state the current state
 	 * 
 	 * @return true if the face up card would be a part of a meld
 	 */
@@ -76,7 +76,7 @@ public class PshUtil {
 	/**
 	 * Determine best deadwood if take face up card
 	 *  
-	 * @param GameState the current state
+	 * @param state the current state
 	 * 
 	 * @return the minimum deadwood possible after drawing this card and discarding one
 	 */
@@ -375,7 +375,7 @@ public class PshUtil {
      * @return the number of set bits (i.e. bits set to 1) in the bitstring
      */
 	public static int getSetBits(long bitString) {
-		// Using Kernighan’s Algorithm for counting set bits 
+		// Using Kernighanï¿½s Algorithm for counting set bits 
 		int count = 0;
 		while (bitString != 0) {
 			bitString = bitString & (bitString - 1); // Unset the least significant bit with a 1

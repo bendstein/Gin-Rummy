@@ -308,23 +308,13 @@ public class GinRummyGame {
 
 		GinRummyPlayer p1;
 
-		/*
-		// Single verbose demonstration game
-		setPlayVerbose(true);
-
-		p0 = new InputPlayer();
-		p1 = new GinRummyAndTonic_v2();
-		new GinRummyGame(p1, p0).play();
-
-		 */
-
 		// Multiple non-verbose games
 
 		setPlayVerbose(false);
 		int numGames = 50;
-		p1 = new GinRummyPlayerImpl();
+		p1 = new SimpleGinRummyPlayer();
 		GinRummyPlayer[] p0s = new GinRummyPlayer[]{
-				new GinRummyAndTonic_v2()};
+				new GinRummyAndTonic_Player()};
 
 
 		for(GinRummyPlayer p0 : p0s) {
